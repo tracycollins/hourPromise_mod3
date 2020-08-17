@@ -1,3 +1,16 @@
 Rails.application.routes.draw do
-  # For details on the DSL available within this file, see https://guides.rubyonrails.org/routing.html
+  get "users", to: "users#index"
+  get "users/:id", to: "users#show"
+  
+  get "orgs", to: "orgs#index"
+  get "orgs/:id", to: "orgs#show"
+  
+  get "causes", to: "causes#index"
+  get "causes/:id", to: "causes#show"
+  
+  get "commitments", to: "commitments#index"
+  get "commitments/:id", to: "commitments#show"
+  
+  get "payments", to: "payments#index"
+  get "payments/:id", to: "payments#show"
 end

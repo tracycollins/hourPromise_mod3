@@ -1,0 +1,23 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  created_date: 2020-08-17
+  start_date: 2020-08-17
+  fund_amount: 1
+  fund_recurring: false
+  funds_donated: 1
+  hour_amount: 1
+  hour_recurring: false
+  hours_donated: 1
+  status: MyString
+
+two:
+  created_date: 2020-08-17
+  start_date: 2020-08-17
+  fund_amount: 1
+  fund_recurring: false
+  funds_donated: 1
+  hour_amount: 1
+  hour_recurring: false
+  hours_donated: 1
+  status: MyString
