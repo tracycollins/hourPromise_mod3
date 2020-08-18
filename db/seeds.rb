@@ -8,7 +8,7 @@
 require 'get_org_info'
 include GetOrgInfo
 
-statuses = ["active", "cancelled", "funded"]
+statuses = ["open", "active", "cancelled", "funded"]
 
 puts "Deleting all DB instances..."
 
@@ -18,11 +18,11 @@ Cause.destroy_all
 User.destroy_all
 Org.destroy_all
 
-num_orgs = 2
-num_individuals = 3
-num_causes = 5
-num_commitments = 6
-num_payments = 10
+num_orgs = 7
+num_individuals = 9
+num_causes = 23
+num_commitments = 10
+num_payments = 17
 
 User.create([
   {
@@ -84,11 +84,14 @@ puts "Generating #{num_causes} Causes ..."
 
 num_causes.times do |index|
 
+  cause_start_date = Faker::Date.between(from: '2020-01-01', to: '2020-08-19')
+  cause_end_date = Faker::Date.between(from: cause_start_date, to: '2025-12-31')
+
   Cause.create({
     description: Faker::Hacker.say_something_smart,
     name: Faker::Company.bs.capitalize,
-    start_date: Faker::Date.between(from: '2020-01-01', to: '2021-12-31'),
-    end_date: Faker::Date.between(from: '2022-01-01', to: '2025-12-31'),
+    start_date: cause_start_date,
+    end_date: cause_end_date,
     fund_target: rand(1..147_174),
     hour_target: rand(1..357),
     status: statuses.sample,
@@ -101,17 +104,55 @@ puts "Generating #{num_commitments} Commitments ..."
 
 num_commitments.times do |index|
 
+  cause = Cause.all.sample
+  user = User.all.sample
+
+  fund_recurring = [true, false].sample
+
+  fund_start_date = Faker::Date.between(from: cause.start_date, to: cause.end_date)
+  fund_end_date = Faker::Date.between(from: fund_start_date, to: cause.end_date)
+  fund_amount = rand(123..456)
+
+  if fund_recurring
+   fund_goal = rand(fund_amount..10_000)
+  else
+   fund_end_date = fund_start_date
+   fund_goal = fund_amount
+  end
+  
+  hour_recurring = [true, false].sample
+
+  hour_start_date = Faker::Date.between(from: cause.start_date, to: cause.end_date)
+  hour_end_date = Faker::Date.between(from: hour_start_date, to: cause.end_date)
+  hour_amount = rand(1..40)
+
+  if hour_recurring
+   hour_goal = rand(hour_amount..500)
+  else
+   hour_end_date = hour_start_date
+   hour_goal = hour_amount
+  end
+  
+  
   Commitment.create({
-    start_date: Faker::Date.between(from: '2020-01-01', to: '2021-12-31'),
-    created_date: Faker::Date.between(from: '2020-01-01', to: '2021-12-31'),
-    fund_amount: rand(1..123456),
-    funds_donated: 0,
-    fund_recurring: true,
-    hour_amount: rand(1..54321),
+
+    fund_start_date: fund_start_date,
+    fund_end_date: fund_end_date,
+    fund_goal: fund_goal,
+    fund_amount: fund_amount,
+    fund_donated: 0,
+    fund_recurring: fund_recurring,
+
+    hour_start_date: hour_start_date,
+    hour_end_date: hour_end_date,
+    hour_goal: hour_goal,
+    hour_amount: hour_amount,
+    hour_donated: 0,
     hour_recurring: true,
-    hours_donated: 0,
+
+    status: "open",
     user: User.all.sample,
-    cause: Cause.all.sample
+    cause: cause
   })
 
 end
@@ -122,29 +163,23 @@ num_payments.times do |index|
 
   c = Commitment.all.sample
 
-  p = Payment.create({
-    date: Faker::Date.between(from: '2020-01-01', to: '2021-12-31'),
-    fund_amount: rand(1..123456),
-    hour_amount: rand(1..54321),
-    user: c.user,
-    commitment: c
-  })
+  if [true, false].sample
+    Payment.create({
+      date: Faker::Date.between(from: c.fund_start_date, to: c.fund_end_date),
+      fund_amount: c.fund_amount,
+      user: c.user,
+      commitment: c
+    })
+  else
+    Payment.create({
+      date: Faker::Date.between(from: c.hour_start_date, to: c.hour_end_date),
+      hour_amount: c.hour_amount,
+      user: c.user,
+      commitment: c
+    })
+  end
 
 end
-
-Commitment.create({
-  start_date: Faker::Date.between(from: '2020-01-01', to: '2021-12-31'),
-  created_date: Faker::Date.between(from: '2020-01-01', to: '2021-12-31'),
-  fund_amount: rand(1..123456),
-  funds_donated: 0,
-  fund_recurring: true,
-  hour_amount: rand(1..54321),
-  hour_recurring: true,
-  hours_donated: 0,
-  user: User.first,
-  cause: Cause.first
-})
-
 
 puts "SEED COMPLETE"
 puts "-----------------"

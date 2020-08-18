@@ -1,29 +1,418 @@
+const configuration = {}
+configuration.commitment = {}
+configuration.commitment.cause = {}
+configuration.commitment.cause.id = null
+configuration.commitment.fund = {}
+configuration.commitment.fund.default = {}
+configuration.commitment.fund.default.donated = 0
+configuration.commitment.fund.default.duration_months = 12
+configuration.commitment.fund.default.amount = 10
+configuration.commitment.fund.default.goal = configuration.commitment.fund.default.duration_months * configuration.commitment.fund.default.amount
+configuration.commitment.hour = {}
+configuration.commitment.hour.default = {}
+configuration.commitment.hour.default.donated = 0
+configuration.commitment.hour.default.duration_months = 12
+configuration.commitment.hour.default.amount = 4
+configuration.commitment.hour.default.goal = configuration.commitment.hour.default.duration_months * configuration.commitment.hour.default.amount
 
 const actionsDiv = document.querySelector("#actions")
 const currentUserDiv = document.querySelector("#current-user")
 const currentUserErrorDiv = document.querySelector("#current-user-error")
+
+const commitmentDiv = document.querySelector("#commitment")
 const commitmentCardHeaderDiv = document.querySelector("#commitment-card-header")
 const commitmentCardBodyDiv = document.querySelector("#commitment-card-body")
 const commitmentCardFooterDiv = document.querySelector("#commitment-card-footer")
 
-let currentUser
+const defaultDateTimeFormat = "YYYY-MM-DD"
+const MINIMUM_WAGE = 8
+
+let currentUser = {}
+currentUser.username = "threecee"
+currentUser.name = "Tracy"
+
 let currentCause
 let currentCommitment
+let orgs = new Set()
+let causes = []
 
-const getCauses = () => {
-  fetch("http://localhost:3000/causes")
-    .then(res => res.json())
-    .then(causes => {
-      console.log(causes)
-      return causes
+const displayCurrentCommitment = () => {
+
+  commitmentCardBodyDiv.innerHTML = ""
+  commitmentCardHeaderDiv.innerText = "Your New Promise"
+  commitmentCardFooterDiv.innerText = `Thank you, ${currentUser.name}`
+
+  const commitmentCardCauseDiv = document.createElement("div")
+  const commitmentCardPromiseDiv = document.createElement("div")
+  commitmentCardPromiseDiv.classList.add("promise")
+
+  const orgName = document.createElement("h5")
+  // orgName.classList.add("card-title")
+  orgName.innerHTML = `<strong>Organization</strong><br>${currentCommitment.cause.org.name}<hr>`
+
+  const causeName = document.createElement("h5")
+  // causeName.classList.add("card-subtitle")
+  causeName.classList.add("mb-2")
+  causeName.innerHTML = `<strong>Cause</strong><br>${currentCommitment.cause.name}<hr>`
+
+  const causeDescription = document.createElement("p")
+  causeDescription.classList.add("mb-2")
+  causeDescription.innerHTML = `<strong>Description</strong><br>${currentCommitment.cause.description}<hr>`
+
+  const causeTarget = document.createElement("h5")
+  // causeTarget.classList.add("mb-2")
+  causeTarget.innerHTML = `<strong>Targets</strong><br>$${currentCommitment.cause.fund_target} | ${currentCommitment.cause.hour_target} Hours<hr>`
+
+  commitmentCardCauseDiv.append(orgName, causeName, causeDescription, causeTarget)
+  commitmentCardBodyDiv.append(commitmentCardCauseDiv)
+
+  // promise progress fund
+  const promiseFundProgressDiv = document.createElement("div")
+  promiseFundProgressDiv.id = "promise-fund-progress-div"
+  promiseFundProgressDiv.classList.add("progress")
+
+  const commitmentFundProgressPercent = 100 * (currentCommitment.fund_donated / currentCommitment.fund_goal)
+
+  const promiseFundProgressInfo = document.createElement("p")
+  promiseFundProgressInfo.id = "promise-fund-progress-info"
+  promiseFundProgressInfo.innerHTML = `Fund Progress: $ ${currentCommitment.fund_donated} of ${currentCommitment.fund_goal}`
+
+  const promiseFundProgressBar = document.createElement("div")
+  promiseFundProgressBar.classList.add("progress-bar")
+  promiseFundProgressBar.id = "promise-fund-progress-bar"
+  promiseFundProgressBar.role = "progressbar"
+  promiseFundProgressBar.style.width = commitmentFundProgressPercent + "%"
+  promiseFundProgressBar.valuemin = 0
+  promiseFundProgressBar.valuenow = commitmentFundProgressPercent
+  promiseFundProgressBar.valuemax = 100
+  promiseFundProgressBar.innerText = commitmentFundProgressPercent + "%"
+
+  promiseFundProgressDiv.append(promiseFundProgressBar)
+  commitmentCardPromiseDiv.append(promiseFundProgressInfo, promiseFundProgressDiv)
+
+  // promise progress hour
+  const promiseHourProgressDiv = document.createElement("div")
+  promiseHourProgressDiv.id = "promise-hour-progress-div"
+  promiseHourProgressDiv.classList.add("progress")
+
+  const commitmentHourProgressPercent = 100 * (currentCommitment.hour_donated / currentCommitment.hour_goal)
+
+  const promiseHourProgressInfo = document.createElement("p")
+  promiseHourProgressInfo.id = "promise-hour-progress-info"
+  promiseHourProgressInfo.innerHTML = `Hour Progress: $ ${currentCommitment.hour_donated} of ${currentCommitment.hour_goal}`
+
+  const promiseHourProgressBar = document.createElement("div")
+  promiseHourProgressBar.classList.add("progress-bar")
+  promiseHourProgressBar.id = "promise-hour-progress-bar"
+  promiseHourProgressBar.role = "progressbar"
+  promiseHourProgressBar.style.width = commitmentHourProgressPercent + "%"
+  promiseHourProgressBar.valuemin = 0
+  promiseHourProgressBar.valuenow = commitmentHourProgressPercent
+  promiseHourProgressBar.valuemax = 100
+  promiseHourProgressBar.innerText = commitmentHourProgressPercent + "%"
+
+  promiseHourProgressDiv.append(promiseHourProgressBar)
+  commitmentCardPromiseDiv.append(promiseHourProgressInfo, promiseHourProgressDiv)
+
+  commitmentCardBodyDiv.append(commitmentCardPromiseDiv)
+
+  setActions()
+}
+
+let createCommitment = (params) => {
+
+  console.log(currentCommitment)
+
+  commitmentCardHeaderDiv.innerText = "Creating a new promise"
+  commitmentCardBodyDiv.innerHTML = ""
+
+  const commitmentForm = document.createElement("form")
+
+  const tableResponsiveDiv = document.createElement("div")
+  tableResponsiveDiv.className = "table"
+
+  const cardTable = document.createElement("table")
+  cardTable.className = "table"
+
+  const tableBody = document.createElement("tbody")
+
+  // ORG ==========
+  const tableOrgRow = document.createElement("tr")
+  const tableOrgLabelCell = document.createElement("th")
+  tableOrgLabelCell.innerText = "Org"
+  const tableOrgCell = document.createElement("td")
+
+  let tableOrgSelect = document.createElement("select")
+  tableOrgSelect.id = "org_id"
+  tableOrgSelect.className = "form-control"
+
+  orgs.clear()
+  orgs.add("all") // if set to "all" won't filter available causes (shows all causes)
+
+  let optionAll = document.createElement("option")
+  optionAll.innerText = "All Orgs"
+  optionAll.value = 0
+  tableOrgSelect.append(optionAll)
+  tableOrgSelect.selectedIndex = 0
+
+  causes.forEach(cause => {
+    if (!orgs.has(cause.org.id)) {
+      orgs.add(cause.org.id)
+      let option = document.createElement("option")
+      option.innerText = cause.org.name
+      option.value = cause.org.id
+      tableOrgSelect.append(option)
+    }
+  })
+
+  tableOrgCell.append(tableOrgSelect)
+  tableOrgRow.append(tableOrgLabelCell)
+  tableOrgRow.append(tableOrgCell)
+  tableBody.append(tableOrgRow)
+
+  // CAUSE ==========
+  const tableCauseRow = document.createElement("tr")
+  const tableCauseLabelCell = document.createElement("th")
+  tableCauseLabelCell.innerText = "Cause"
+  const tableCauseCell = document.createElement("td")
+
+  let tableCauseSelect = document.createElement("select")
+  tableCauseSelect.id = "cause_id"
+  tableCauseSelect.className = "form-control"
+
+  causes.forEach(cause => {
+    let option = document.createElement("option")
+    option.innerText = cause.name
+    option.value = cause.id
+    tableCauseSelect.append(option)
+  })
+
+  tableCauseCell.append(tableCauseSelect)
+  tableCauseRow.append(tableCauseLabelCell)
+  tableCauseRow.append(tableCauseCell)
+  tableBody.append(tableCauseRow)
+
+  // update available causes on change of org select
+  tableOrgSelect.addEventListener("change", (evt) => {
+
+    const currentSelectedOrgId = parseInt(evt.target.value)
+
+    console.log(`currentSelectedOrgId: ${currentSelectedOrgId}`)
+
+    tableCauseSelect.innerHTML = ""
+
+    causes.forEach(cause => {
+      if (currentSelectedOrgId === 0 || currentSelectedOrgId === parseInt(cause.org.id)) {
+        let option = document.createElement("option")
+        option.innerText = cause.name
+        option.value = cause.id
+        tableCauseSelect.append(option)
+      }
     })
-    .catch(err => {
-      console.error("getCauses error: ", err)
-      throw err;
-    })
+
+  })
+
+
+  // FUND GOAL ==========
+  const tableFundGoalRow = document.createElement("tr")
+  const tableFundGoalLabelCell = document.createElement("th")
+  tableFundGoalLabelCell.innerText = "Fund Goal:"
+  const tableFundGoalCell = document.createElement("td")
+
+  const tableFundGoalInput = document.createElement("input")
+  tableFundGoalInput.name = "fund_goal"
+  tableFundGoalInput.type = "number"
+  tableFundGoalInput.value = parseInt(currentCommitment.fund_goal)
+
+  tableFundGoalCell.append(tableFundGoalInput)
+  tableFundGoalRow.append(tableFundGoalLabelCell)
+  tableFundGoalRow.append(tableFundGoalCell)
+  tableBody.append(tableFundGoalRow)
+
+  // FUND AMOUNT ==========
+  const tableFundAmountRow = document.createElement("tr")
+  const tableFundAmountLabelCell = document.createElement("th")
+  tableFundAmountLabelCell.innerText = "Monthly Promise ($):"
+  const tableFundAmountCell = document.createElement("td")
+
+  const tableFundAmountInput = document.createElement("input")
+  tableFundAmountInput.name = "fund_amount"
+  tableFundAmountInput.type = "number"
+  tableFundAmountInput.value = parseInt(currentCommitment.fund_amount)
+
+  tableFundAmountCell.append(tableFundAmountInput)
+  tableFundAmountRow.append(tableFundAmountLabelCell)
+  tableFundAmountRow.append(tableFundAmountCell)
+  tableBody.append(tableFundAmountRow)
+
+  // FUND START DATE ==========
+  const tableFundPaymentStartRow = document.createElement("tr")
+  const tableFundPaymentStartLabelCell = document.createElement("th")
+  tableFundPaymentStartLabelCell.innerText = "Fund Start:"
+  const tableFundPaymentStartCell = document.createElement("td")
+
+  const tableFundPaymentStartInput = document.createElement("input")
+  tableFundPaymentStartInput.name = "fund_start_date"
+  tableFundPaymentStartInput.type = "date"
+  tableFundPaymentStartInput.value = currentCommitment.fund_start_date
+
+  tableFundPaymentStartCell.append(tableFundPaymentStartInput)
+  tableFundPaymentStartRow.append(tableFundPaymentStartLabelCell)
+  tableFundPaymentStartRow.append(tableFundPaymentStartCell)
+  tableBody.append(tableFundPaymentStartRow)
+
+  // FUND END DATE ==========
+  const tableFundPaymentEndRow = document.createElement("tr")
+  const tableFundPaymentEndLabelCell = document.createElement("th")
+  tableFundPaymentEndLabelCell.innerText = "Fund End:"
+  const tableFundPaymentEndCell = document.createElement("td")
+
+  const tableFundPaymentEndInput = document.createElement("input")
+  tableFundPaymentEndInput.name = "fund_end_date"
+  tableFundPaymentEndInput.type = "date"
+  tableFundPaymentEndInput.value = currentCommitment.fund_end_date
+
+  tableFundPaymentEndCell.append(tableFundPaymentEndInput)
+  tableFundPaymentEndRow.append(tableFundPaymentEndLabelCell)
+  tableFundPaymentEndRow.append(tableFundPaymentEndCell)
+  tableBody.append(tableFundPaymentEndRow)
+
+  // FUND RECURRING ==========
+  const tableFundRecurringRow = document.createElement("tr")
+  const tableFundRecurringLabelCell = document.createElement("th")
+  tableFundRecurringLabelCell.innerText = "Recurring Payments:"
+  const tableFundRecurringCell = document.createElement("td")
+
+  const tableFundRecurringInput = document.createElement("input")
+  tableFundRecurringInput.name = "fund_recurring"
+  tableFundRecurringInput.type = "checkbox"
+  tableFundRecurringInput.value = currentCommitment.fund_recurring
+
+  tableFundRecurringCell.append(tableFundRecurringInput)
+  tableFundRecurringRow.append(tableFundRecurringLabelCell)
+  tableFundRecurringRow.append(tableFundRecurringCell)
+  tableBody.append(tableFundRecurringRow)
+
+  // HOUR GOAL ==========
+  const tableHourGoalRow = document.createElement("tr")
+  const tableHourGoalLabelCell = document.createElement("th")
+  tableHourGoalLabelCell.innerText = "Hour Goal:"
+  const tableHourGoalCell = document.createElement("td")
+
+  const tableHourGoalInput = document.createElement("input")
+  tableHourGoalInput.name = "hour_goal"
+  tableHourGoalInput.type = "number"
+  tableHourGoalInput.value = parseInt(currentCommitment.hour_goal)
+
+  tableHourGoalCell.append(tableHourGoalInput)
+  tableHourGoalRow.append(tableHourGoalLabelCell)
+  tableHourGoalRow.append(tableHourGoalCell)
+  tableBody.append(tableHourGoalRow)
+
+  // HOUR AMOUNT ==========
+  const tableHourAmountRow = document.createElement("tr")
+  const tableHourAmountLabelCell = document.createElement("th")
+  tableHourAmountLabelCell.innerText = "Monthly Promise (hours):"
+  const tableHourAmountCell = document.createElement("td")
+
+  const tableHourAmountInput = document.createElement("input")
+  tableHourAmountInput.name = "hour_amount"
+  tableHourAmountInput.type = "number"
+  tableHourAmountInput.value = parseInt(currentCommitment.hour_amount)
+
+  tableHourAmountCell.append(tableHourAmountInput)
+  tableHourAmountRow.append(tableHourAmountLabelCell)
+  tableHourAmountRow.append(tableHourAmountCell)
+  tableBody.append(tableHourAmountRow)
+
+  // HOUR START DATE ==========
+  const tableHourPaymentStartRow = document.createElement("tr")
+  const tableHourPaymentStartLabelCell = document.createElement("th")
+  tableHourPaymentStartLabelCell.innerText = "Hour Start:"
+  const tableHourPaymentStartCell = document.createElement("td")
+
+  const tableHourPaymentStartInput = document.createElement("input")
+  tableHourPaymentStartInput.name = "hour_start_date"
+  tableHourPaymentStartInput.type = "date"
+  tableHourPaymentStartInput.value = currentCommitment.hour_start_date
+
+  tableHourPaymentStartCell.append(tableHourPaymentStartInput)
+  tableHourPaymentStartRow.append(tableHourPaymentStartLabelCell)
+  tableHourPaymentStartRow.append(tableHourPaymentStartCell)
+  tableBody.append(tableHourPaymentStartRow)
+
+  // HOUR END DATE ==========
+  const tableHourPaymentEndRow = document.createElement("tr")
+  const tableHourPaymentEndLabelCell = document.createElement("th")
+  tableHourPaymentEndLabelCell.innerText = "Hour End:"
+  const tableHourPaymentEndCell = document.createElement("td")
+
+  const tableHourPaymentEndInput = document.createElement("input")
+  tableHourPaymentEndInput.name = "hour_end_date"
+  tableHourPaymentEndInput.type = "date"
+  tableHourPaymentEndInput.value = currentCommitment.hour_end_date
+
+  tableHourPaymentEndCell.append(tableHourPaymentEndInput)
+  tableHourPaymentEndRow.append(tableHourPaymentEndLabelCell)
+  tableHourPaymentEndRow.append(tableHourPaymentEndCell)
+  tableBody.append(tableHourPaymentEndRow)
+
+  // HOUR RECURRING ==========
+  const tableHourRecurringRow = document.createElement("tr")
+  const tableHourRecurringLabelCell = document.createElement("th")
+  tableHourRecurringLabelCell.innerText = "Recurring Payments:"
+  const tableHourRecurringCell = document.createElement("td")
+
+  const tableHourRecurringInput = document.createElement("input")
+  tableHourRecurringInput.name = "hour_recurring"
+  tableHourRecurringInput.type = "checkbox"
+  tableHourRecurringInput.value = currentCommitment.hour_recurring
+
+  tableHourRecurringCell.append(tableHourRecurringInput)
+  tableHourRecurringRow.append(tableHourRecurringLabelCell)
+  tableHourRecurringRow.append(tableHourRecurringCell)
+  tableBody.append(tableHourRecurringRow)
+
+  cardTable.append(tableBody)
+
+  let confirmCreateCommitmentButton = document.createElement('button')
+  confirmCreateCommitmentButton.type = "submit"
+  confirmCreateCommitmentButton.className = "btn btn-primary"
+  confirmCreateCommitmentButton.innerText = "Submit New Promise?"
+
+  commitmentForm.addEventListener("submit", (evt) => {
+  })
+
+  commitmentForm.addEventListener("submit", (evt) => {
+    evt.preventDefault()
+    const formData = new FormData(commitmentForm);
+
+    for (const key of formData.keys()) {
+      if (key !== undefined) {
+        console.log(`KEY: ${key} | VALUE: ${formData.get(key)}`);
+        currentCommitment[key] = formData.get(key)
+      }
+    }
+    currentCommitment.user_id = currentUser.id
+    currentCommitment.cause_id = evt.target.cause_id.value
+    currentCommitment.fund_recurring = evt.target.fund_recurring.value
+    currentCommitment.hour_recurring = evt.target.hour_recurring.value
+    createNewCommitment()
+  })
+
+  let backButton = document.createElement('button')
+  backButton.className = "btn btn-secondary"
+  backButton.innerText = "Back"
+  backButton.addEventListener("click", (evt) => {
+    // showCommitmentPaymentScheduleForm()
+  })
+
+  commitmentForm.append(cardTable, backButton, confirmCreateCommitmentButton)
+  commitmentCardBodyDiv.append(commitmentForm)
 }
 
 let showLoginForm = () => {
+
   currentUserDiv.innerHTML = ""
   currentUserErrorDiv.innerHTML = ""
   commitmentCardHeaderDiv.innerHTML = ""
@@ -63,204 +452,9 @@ let showLoginForm = () => {
 
 }
 
-let showCommitmentCauseSelectForm = () => {
-
-  commitmentCardHeaderDiv.innerHTML = ""
-  commitmentCardBodyDiv.innerHTML = ""
-  commitmentCardFooterDiv.innerHTML = ""
-
-  fetch("http://localhost:3000/causes")
-    .then(res => res.json())
-    .then(causes => {
-      console.log(causes)
-
-      let commitmentCauseSelectForm = document.createElement("form")
-      commitmentCauseSelectForm.classList.add("centered")
-
-      let formCausesDiv = document.createElement('div')
-      formCausesDiv.className = "form-group"
-
-      let formCausesLabel = document.createElement("label")
-      formCausesLabel.htmlFor = "cause"
-      formCausesLabel.innerText = "Causes"
-      formCausesDiv.append(formCausesLabel)
-
-      let formCausesSelect = document.createElement("select")
-      formCausesSelect.id = "cause"
-      formCausesSelect.className = "form-control"
-
-      causes.forEach(cause => {
-        let option = document.createElement("option")
-        option.innerText = cause.name
-        option.value = JSON.stringify(cause)
-        formCausesSelect.append(option)
-      })
-
-      formCausesDiv.append(formCausesLabel, formCausesSelect)
-
-      let submitButton = document.createElement('button')
-      submitButton.type = "submit"
-      submitButton.className = "btn btn-primary"
-      submitButton.innerText = "Select Cause"
-
-      commitmentCauseSelectForm.append(formCausesDiv, submitButton)
-
-      commitmentCardBodyDiv.append(commitmentCauseSelectForm)
-
-      commitmentCauseSelectForm.addEventListener("submit", (evt) => {
-
-        evt.preventDefault()
-
-        currentCause = JSON.parse(evt.target.cause.value)
-        console.log("selected cause: ", currentCause)
-
-        currentCommitment = {}
-        currentCommitment.user_id = currentUser.id
-        currentCommitment.cause_id = currentCause.id
-
-        showCommitmentPaymentAmountForm()
-      })
-    })
-    .catch(err => {
-      console.error("getCauses error: ", err)
-      throw err;
-    })
-
-}
-
-// "payment" can be in $$$ and/or HOURS
-// each step has a "BACK" button
-// ----------------------------------------------------------
-// PROMPT: enter payment amount ($$$ and/or hours)
-
-// PROMPT: recurring?
-
-// if (recurring_payment)
-//    set payment.isRecurring = true
-//    PROMPT: select start_date (display calendar)
-//    PROMPT: select end_date OR number_of_payments (display calendar AND number_of_payments input)
-// else one-time payment
-//    set payment.isRecurring = false
-//    PROMPT: select start_date  (display calendar)
-
-// calculate number of payments; end_date; total payment
-// DISPLAY new commitment + payments 
-// PROMPT: Create Promise/Commitment | Cancel | Back
-
-let showCommitmentPaymentScheduleForm = () => {
-
-  commitmentCardBodyDiv.innerHTML = ""
-
-  let commitmentPaymentScheduleForm = document.createElement("form")
-  commitmentPaymentScheduleForm.classList.add("centered")
-
-  let formScheduleDiv = document.createElement('div')
-  formScheduleDiv.className = "form-group"
-
-  let commitmentPaymentStartDateLabel = document.createElement("label")
-  commitmentPaymentStartDateLabel.htmlFor = "start_date"
-  commitmentPaymentStartDateLabel.innerText = "Start Date"
-
-  let commitmentPaymentStartDateInput = document.createElement("input")
-  commitmentPaymentStartDateInput.id = "payment_start_date"
-  commitmentPaymentStartDateInput.type = "date"
-  commitmentPaymentStartDateInput.className = "form-control"
-
-  let commitmentPaymentEndDateLabel = document.createElement("label")
-  commitmentPaymentEndDateLabel.htmlFor = "end_date"
-  commitmentPaymentEndDateLabel.innerText = "End Date"
-
-  let commitmentPaymentEndDateInput = document.createElement("input")
-  commitmentPaymentEndDateInput.id = "payment_end_date"
-  commitmentPaymentEndDateInput.type = "date"
-  commitmentPaymentEndDateInput.className = "form-control"
-
-  let commitmentPaymentNumberLabel = document.createElement("label")
-  commitmentPaymentNumberLabel.htmlFor = "payment_number"
-  commitmentPaymentNumberLabel.innerText = "Number of payments"
-
-  let commitmentPaymentNumberInput = document.createElement("input")
-  commitmentPaymentNumberInput.id = "payment_number"
-  commitmentPaymentNumberInput.className = "form-control"
-
-  formScheduleDiv.append(
-    commitmentPaymentStartDateLabel,
-    commitmentPaymentStartDateInput,
-    commitmentPaymentEndDateLabel,
-    commitmentPaymentEndDateInput,
-    commitmentPaymentNumberLabel,
-    commitmentPaymentNumberInput
-  )
-
-  let submitButton = document.createElement('button')
-  submitButton.type = "submit"
-  submitButton.className = "btn btn-primary"
-  submitButton.innerText = "Next"
-
-  let backButton = document.createElement('button')
-  backButton.className = "btn btn-secondary"
-  backButton.innerText = "Back"
-  backButton.addEventListener("click", (evt) => {
-    showCommitmentPaymentAmountForm()
-  })
-
-  commitmentPaymentScheduleForm.append(formScheduleDiv, backButton, submitButton)
-
-  commitmentCardBodyDiv.append(commitmentPaymentScheduleForm)
-
-  commitmentPaymentScheduleForm.addEventListener("submit", (evt) => {
-    evt.preventDefault()
-    // t.date : created_date
-    // t.date : start_date
-    // t.integer : fund_amount
-    // t.boolean : fund_recurring
-    // t.integer : funds_donated
-    // t.integer : hour_amount
-    // t.boolean : hour_recurring
-    // t.integer : hours_donated
-    // t.string : status
-    // t.integer : user_id
-    // t.integer : cause_id
-
-    currentCommitment.start_date = evt.target.payment_start_date.value
-    currentCommitment.end_date = evt.target.payment_end_date.value
-    currentCommitment.payment_number = evt.target.payment_number.value
-
-    showCommitmentCreateConfirmation()
-  })
-
-}
-
 let createNewCommitment = () => {
   commitmentCardBodyDiv.innerHTML = ""
   console.log("createNewCommitment ", currentCommitment)
-
-  // : user_id, 
-  // : cause_id, 
-  // : start_date,
-  // : created_date,
-  // : fund_amount,
-  // : fund_recurring,
-  // : funds_donated,
-  // : hour_amount,
-  // : hour_recurring,
-  // : hours_donated,
-  // : status
-
-  const commitment = {}
-  commitment.user_id = currentUser.id
-  commitment.cause_id = currentCause.id
-  commitment.start_date = currentCommitment.start_date
-
-  commitment.fund_amount = currentCommitment.fund_amount
-  commitment.fund_recurring = (currentCommitment.payment_number > 1) ? true : false
-  commitment.funds_donated = 0
-
-  commitment.hour_amount = currentCommitment.hour_amount
-  commitment.hour_recurring = (currentCommitment.payment_number > 1) ? true : false
-  commitment.hours_donated = 0
-
-  commitment.status = "active"
 
   fetch("http://localhost:3000/commitments/create", {
     method: "POST",
@@ -268,220 +462,22 @@ let createNewCommitment = () => {
       "content-type": "application/json"
     },
     body: JSON.stringify({
-      commitment: commitment
+      commitment: currentCommitment
     })
   })
     .then(res => res.json())
     .then(response => {
       if (response.id) {
         currentCommitment = response
+        displayCurrentCommitment()
       } else {
         console.error(response)
       }
     })
 }
 
-let showCommitment = (params) => {
-
-  console.log(currentCommitment)
-
-  commitmentCardBodyDiv.innerHTML = ""
-  // < h5 class="card-title" > Card title</h5 >
-  // < h6 class="card-subtitle mb-2 text-muted" > Card subtitle</h6 >
-
-  const cardHeader = document.createElement("h4")
-  cardHeader.classList.add("card-header")
-  cardHeader.innerText = "New Promise"
-
-  const cardTitle = document.createElement("h5")
-  cardTitle.classList.add("card-title")
-  cardTitle.innerText = currentCause.org.name
-
-  const cardSubtitle = document.createElement("h6")
-  cardSubtitle.classList.add("card-subtitle")
-  cardSubtitle.classList.add("mb-2")
-  cardSubtitle.classList.add("text-muted")
-  cardSubtitle.innerText = currentCause.org.tagline
-
-  const commitmentForm = document.createElement("form")
-  const tableResponsiveDiv = document.createElement("div")
-  tableResponsiveDiv.className = "table-responsive"
-
-  const cardTable = document.createElement("table")
-  cardTable.className = "table"
-
-  const tableBody = document.createElement("tbody")
-
-  // MONEY ==========
-  const tableFundRow = document.createElement("tr")
-  const tableFundAmountLabelCell = document.createElement("th")
-  tableFundAmountLabelCell.innerText = "Monthly Promises($):"
-  const tableFundAmountCell = document.createElement("td")
-
-  const tableFundAmountInput = document.createElement("input")
-  tableFundAmountInput.name = "fund_amount"
-  tableFundAmountInput.type = "number"
-  tableFundAmountInput.value = parseInt(currentCommitment.fund_amount)
-
-  tableFundAmountCell.append(tableFundAmountInput)
-  tableFundRow.append(tableFundAmountLabelCell)
-  tableFundRow.append(tableFundAmountCell)
-  tableBody.append(tableFundRow)
-
-  // TIME ==========
-  const tableHourRow = document.createElement("tr")
-  const tableHourAmountLabelCell = document.createElement("th")
-  tableHourAmountLabelCell.innerText = "Monthly Promise (hours):"
-  const tableHourAmountCell = document.createElement("td")
-
-  const tableHourAmountInput = document.createElement("input")
-  tableHourAmountInput.name = "hour_amount"
-  tableHourAmountInput.type = "number"
-  tableHourAmountInput.value = parseInt(currentCommitment.hour_amount)
-
-  tableHourAmountCell.append(tableHourAmountInput)
-  tableHourRow.append(tableHourAmountLabelCell)
-  tableHourRow.append(tableHourAmountCell)
-  tableBody.append(tableHourRow)
-
-  // START DATE ==========
-  const tablePaymentStartRow = document.createElement("tr")
-  const tablePaymentStartLabelCell = document.createElement("th")
-  tablePaymentStartLabelCell.innerText = "Start:"
-  const tablePaymentStartCell = document.createElement("td")
-
-  const tablePaymentStartInput = document.createElement("input")
-  tablePaymentStartInput.name = "start_date"
-  tablePaymentStartInput.type = "date"
-  tablePaymentStartInput.value = currentCommitment.start_date
-
-  tablePaymentStartCell.append(tablePaymentStartInput)
-  tablePaymentStartRow.append(tablePaymentStartLabelCell)
-  tablePaymentStartRow.append(tablePaymentStartCell)
-  tableBody.append(tablePaymentStartRow)
-
-  // END DATE ==========
-  const tablePaymentEndRow = document.createElement("tr")
-  const tablePaymentEndLabelCell = document.createElement("th")
-  tablePaymentEndLabelCell.innerText = "End:"
-  const tablePaymentEndCell = document.createElement("td")
-
-  const tablePaymentEndInput = document.createElement("input")
-  tablePaymentEndInput.name = "end_date"
-  tablePaymentEndInput.type = "date"
-  tablePaymentEndInput.value = currentCommitment.end_date
-
-  tablePaymentEndCell.append(tablePaymentEndInput)
-  tablePaymentEndRow.append(tablePaymentEndLabelCell)
-  tablePaymentEndRow.append(tablePaymentEndCell)
-  tableBody.append(tablePaymentEndRow)
-
-  // NUM PAYMENTS ==========
-  const tablePaymentNumberRow = document.createElement("tr")
-  const tablePaymentNumberLabelCell = document.createElement("th")
-  tablePaymentNumberLabelCell.innerText = "Number of monthly payments:"
-  const tablePaymentNumberCell = document.createElement("td")
-
-  const tablePaymentNumberInput = document.createElement("input")
-  tablePaymentNumberInput.name = "end_date"
-  tablePaymentNumberInput.type = "number"
-  tablePaymentNumberInput.value = currentCommitment.payment_number
-
-  tablePaymentNumberCell.append(tablePaymentNumberInput)
-  tablePaymentNumberRow.append(tablePaymentNumberLabelCell)
-  tablePaymentNumberRow.append(tablePaymentNumberCell)
-  tableBody.append(tablePaymentNumberRow)
-
-  cardTable.append(tableBody)
-
-  let confirmCreateCommitmentButton = document.createElement('button')
-  confirmCreateCommitmentButton.className = "btn btn-primary"
-  confirmCreateCommitmentButton.innerText = "Submit New Promise?"
-
-  confirmCreateCommitmentButton.addEventListener("click", (evt) => {
-    createNewCommitment()
-  })
-
-  let backButton = document.createElement('button')
-  backButton.className = "btn btn-secondary"
-  backButton.innerText = "Back"
-  backButton.addEventListener("click", (evt) => {
-    showCommitmentPaymentScheduleForm()
-  })
-
-  commitmentCardBodyDiv.append(cardHeader, cardTitle, cardSubtitle, cardTable, backButton, confirmCreateCommitmentButton,)
-}
-
 let showCommitmentCreateConfirmation = () => {
-  showCommitment({ isConfirmation: true })
-}
-
-let showCommitmentPaymentAmountForm = () => {
-
-  commitmentCardBodyDiv.innerHTML = ""
-
-  let commitmentPaymentAmountForm = document.createElement("form")
-  commitmentPaymentAmountForm.classList.add("centered")
-
-  let formPaymentDiv = document.createElement('div')
-  formPaymentDiv.className = "form-group"
-
-  let formPaymentMoneyLabel = document.createElement("label")
-  formPaymentMoneyLabel.htmlFor = "money"
-  formPaymentMoneyLabel.innerText = "Money"
-
-  let formPaymentMoneyInput = document.createElement("input")
-  formPaymentMoneyInput.id = "payment_amount_money"
-  formPaymentMoneyInput.className = "form-control"
-
-  let formPaymentTimeLabel = document.createElement("label")
-  formPaymentTimeLabel.htmlFor = "time"
-  formPaymentTimeLabel.innerText = "Time"
-
-  let formPaymentTimeInput = document.createElement("input")
-  formPaymentTimeInput.id = "payment_amount_time"
-  formPaymentTimeInput.className = "form-control"
-
-  formPaymentDiv.append(formPaymentMoneyLabel, formPaymentMoneyInput, formPaymentTimeLabel, formPaymentTimeInput)
-
-  let submitButton = document.createElement('button')
-  submitButton.type = "submit"
-  submitButton.className = "btn btn-primary"
-  submitButton.innerText = "Next"
-
-  let backButton = document.createElement('button')
-  backButton.className = "btn btn-secondary"
-  backButton.innerText = "Back"
-  backButton.addEventListener("click", (evt) => {
-    showCommitmentCauseSelectForm(currentUser)
-  })
-
-  commitmentPaymentAmountForm.append(formPaymentDiv, backButton, submitButton)
-
-  commitmentCardBodyDiv.append(commitmentPaymentAmountForm)
-
-  commitmentPaymentAmountForm.addEventListener("submit", (evt) => {
-    evt.preventDefault()
-    console.log("payment_amount_money: ", evt.target.payment_amount_money.value)
-    console.log("payment_amount_time: ", evt.target.payment_amount_time.value)
-
-    // t.date : created_date
-    // t.date : start_date
-    // t.integer : fund_amount
-    // t.boolean : fund_recurring
-    // t.integer : funds_donated
-    // t.integer : hour_amount
-    // t.boolean : hour_recurring
-    // t.integer : hours_donated
-    // t.string : status
-    // t.integer : user_id
-    // t.integer : cause_id
-
-    currentCommitment.fund_amount = evt.target.payment_amount_money.value
-    currentCommitment.hour_amount = evt.target.payment_amount_time.value
-
-    showCommitmentPaymentScheduleForm()
-  })
+  // showCommitment({ isConfirmation: true })
 }
 
 let handleLoginForm = (evt) => {
@@ -541,6 +537,19 @@ let setCurrentUser = (user) => {
 
 }
 
+const fetchCauses = async () => {
+
+  try {
+    const res = await fetch("http://localhost:3000/causes")
+    const causes = await res.json()
+    return causes
+  }
+  catch (err) {
+    console.error("getCauses error: ", err)
+    throw err
+  }
+}
+
 let setActions = () => {
   actionsDiv.innerHTML = ""
 
@@ -551,11 +560,37 @@ let setActions = () => {
 
   actionsDiv.append(createCommitmentButton)
 
-  createCommitmentButton.addEventListener("click", (evt) => {
-    currentCause = {}
-    currentCommitment = {}
+  createCommitmentButton.addEventListener("click", async (evt) => {
+
     createCommitmentButton.remove()
-    showCommitmentCauseSelectForm()
+
+    causes = await fetchCauses();
+
+    currentCause = {}
+
+    currentCommitment = {}
+
+    currentCommitment.user_id = currentUserDiv.id
+    currentCommitment.cause_id = null
+    currentCommitment.status = "open"
+
+    currentCommitment.fund_duration = configuration.commitment.fund.default.duration_months
+    currentCommitment.fund_start_date = moment().format(defaultDateTimeFormat)
+    currentCommitment.fund_end_date = moment().add(configuration.commitment.fund.default.duration_months, 'months').format(defaultDateTimeFormat)
+    currentCommitment.fund_goal = configuration.commitment.fund.default.goal
+    currentCommitment.fund_donated = 0
+    currentCommitment.fund_amount = configuration.commitment.fund.default.amount
+    currentCommitment.fund_recurring = true
+
+    currentCommitment.hour_duration = configuration.commitment.hour.default.duration_months
+    currentCommitment.hour_start_date = moment().format(defaultDateTimeFormat)
+    currentCommitment.hour_end_date = moment().add(configuration.commitment.hour.default.duration_months, 'months').format(defaultDateTimeFormat)
+    currentCommitment.hour_goal = configuration.commitment.hour.default.goal
+    currentCommitment.hour_donated = 0
+    currentCommitment.hour_amount = configuration.commitment.hour.default.amount
+    currentCommitment.hour_recurring = true
+
+    createCommitment()
   })
 }
 
@@ -586,11 +621,11 @@ const showUserCommmitments = () => {
   commitmentHeaderStartDate.innerText = "Start"
   commitmentHeaderEndDate.innerText = "End"
   commitmentHeaderFundAmount.innerText = "$"
-  commitmentHeaderFundRecurring.innerText = "$ recurring"
-  commitmentHeaderFundsDonated.innerText = "Current $ Total"
+  commitmentHeaderFundRecurring.innerText = "Recurring"
+  commitmentHeaderFundsDonated.innerText = "Total"
   commitmentHeaderHourAmount.innerText = "Hour"
-  commitmentHeaderHourRecurring.innerText = "Hour Recurring"
-  commitmentHeaderHoursDonated.innerText = "Current Hour Total"
+  commitmentHeaderHourRecurring.innerText = "Recurring"
+  commitmentHeaderHoursDonated.innerText = "Total"
 
   commitmentHeaderCause.scope = "col"
   commitmentHeaderStatus.scope = "col"
@@ -640,7 +675,7 @@ const showUserCommmitments = () => {
     cellFundRecurring.innerText = commitment.fund_recurring
 
     const cellFundsDonated = document.createElement("td")
-    cellFundsDonated.innerText = commitment.funds_donated
+    cellFundsDonated.innerText = commitment.fund_donated
 
     const cellHourAmount = document.createElement("td")
     cellHourAmount.innerText = commitment.hour_amount
@@ -649,7 +684,7 @@ const showUserCommmitments = () => {
     cellHourRecurring.innerText = commitment.hour_recurring
 
     const cellHoursDonated = document.createElement("td")
-    cellHoursDonated.innerText = commitment.hours_donated
+    cellHoursDonated.innerText = commitment.hour_donated
 
     tableRow.append(
       cellName,
@@ -678,4 +713,23 @@ let logOut = () => {
   showLoginForm()
 }
 
-showLoginForm()
+// showLoginForm()
+
+fetch("http://localhost:3000/users/login", {
+  method: "POST",
+  headers: {
+    "content-type": "application/json"
+  },
+  body: JSON.stringify({
+    usernameFromFrontEnd: currentUser.username
+  })
+})
+  .then(res => res.json())
+  .then(response => {
+    if (response.id) {
+      currentUser = response
+      showUserInformation(currentUser)
+    } else {
+      showUserLoginError(response)
+    }
+  })

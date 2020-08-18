@@ -1,14 +1,21 @@
 class CreateCommitments < ActiveRecord::Migration[6.0]
   def change
     create_table :commitments do |t|
-      t.date :created_date
-      t.date :start_date
+
+      t.date :fund_start_date
+      t.date :fund_end_date
+      t.integer :fund_goal
       t.integer :fund_amount
+      t.integer :fund_donated
       t.boolean :fund_recurring
-      t.integer :funds_donated
+
+      t.date :hour_start_date
+      t.date :hour_end_date
+      t.integer :hour_goal
       t.integer :hour_amount
+      t.integer :hour_donated
       t.boolean :hour_recurring
-      t.integer :hours_donated
+      
       t.string :status
       t.integer :user_id
       t.integer :cause_id

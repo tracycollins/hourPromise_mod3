@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_08_17_195310) do
+ActiveRecord::Schema.define(version: 2020_08_17_173942) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -30,14 +30,18 @@ ActiveRecord::Schema.define(version: 2020_08_17_195310) do
   end
 
   create_table "commitments", force: :cascade do |t|
-    t.date "created_date"
-    t.date "start_date"
+    t.date "fund_start_date"
+    t.date "fund_end_date"
+    t.integer "fund_goal"
     t.integer "fund_amount"
+    t.integer "fund_donated"
     t.boolean "fund_recurring"
-    t.integer "funds_donated"
+    t.date "hour_start_date"
+    t.date "hour_end_date"
+    t.integer "hour_goal"
     t.integer "hour_amount"
+    t.integer "hour_donated"
     t.boolean "hour_recurring"
-    t.integer "hours_donated"
     t.string "status"
     t.integer "user_id"
     t.integer "cause_id"
