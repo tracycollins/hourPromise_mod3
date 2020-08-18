@@ -1,4 +1,7 @@
 Rails.application.routes.draw do
+
+  post "/users/login", to: "users#login"
+  
   get "users", to: "users#index"
   get "users/:id", to: "users#show"
   
@@ -8,6 +11,7 @@ Rails.application.routes.draw do
   get "causes", to: "causes#index"
   get "causes/:id", to: "causes#show"
   
+  post "/commitments/create", to: "commitments#create"
   get "commitments", to: "commitments#index"
   get "commitments/:id", to: "commitments#show"
   

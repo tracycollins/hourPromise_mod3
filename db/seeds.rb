@@ -39,7 +39,6 @@ User.create([
   }
 ])
 
-
 # Get rated orgs from Charity Navigator API
 # https://charity.3scale.net/
 
@@ -93,7 +92,7 @@ num_causes.times do |index|
     fund_target: rand(1..147_174),
     hour_target: rand(1..357),
     status: statuses.sample,
-    owner: @orgs_array.sample,
+    org: @orgs_array.sample,
   })
 
 end
@@ -121,14 +120,30 @@ puts "Generating #{num_payments} Payments ..."
 
 num_payments.times do |index|
 
-  Payment.create({
+  c = Commitment.all.sample
+
+  p = Payment.create({
     date: Faker::Date.between(from: '2020-01-01', to: '2021-12-31'),
     fund_amount: rand(1..123456),
     hour_amount: rand(1..54321),
-    commitment: Commitment.all.sample
+    user: c.user,
+    commitment: c
   })
 
 end
+
+Commitment.create({
+  start_date: Faker::Date.between(from: '2020-01-01', to: '2021-12-31'),
+  created_date: Faker::Date.between(from: '2020-01-01', to: '2021-12-31'),
+  fund_amount: rand(1..123456),
+  funds_donated: 0,
+  fund_recurring: true,
+  hour_amount: rand(1..54321),
+  hour_recurring: true,
+  hours_donated: 0,
+  user: User.first,
+  cause: Cause.first
+})
 
 
 puts "SEED COMPLETE"

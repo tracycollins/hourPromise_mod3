@@ -9,6 +9,7 @@ class CreateCauses < ActiveRecord::Migration[6.0]
       t.date :start_date
       t.date :end_date
       t.string :status
+      t.integer :org_id
 
       t.timestamps
     end
