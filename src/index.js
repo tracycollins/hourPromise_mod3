@@ -24,6 +24,11 @@ const commitmentCardHeaderDiv = document.querySelector("#commitment-card-header"
 const commitmentCardBodyDiv = document.querySelector("#commitment-card-body")
 const commitmentCardFooterDiv = document.querySelector("#commitment-card-footer")
 
+const paymentCardDiv = document.querySelector("#payment")
+const paymentCardHeaderDiv = document.querySelector("#payment-card-header")
+const paymentCardBodyDiv = document.querySelector("#payment-card-body")
+const paymentCardFooterDiv = document.querySelector("#payment-card-footer")
+
 const defaultDateTimeFormat = "YYYY-MM-DD"
 const MINIMUM_WAGE = 8
 
@@ -33,8 +38,48 @@ currentUser.name = "Tracy"
 
 let currentCause
 let currentCommitment
+let currentPayment
+
 let orgs = new Set()
 let causes = []
+
+const displayPayment = (payment) => {
+  console.log(payment)
+}
+
+const makePayment = (commitment) => {
+
+  paymentCardBodyDiv.innerHTML = ""
+
+  const newPayment = {
+    user_id: currentUser.id,
+    commitment_id: commitment.id,
+    date: moment().format(defaultDateTimeFormat),
+    fund_amount: commitment.fund_amount,
+    hour_amount: commitment.hour_amount
+  }
+
+  console.log("makePayment ", newPayment)
+
+  fetch("http://localhost:3000/payments/create", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      payment: newPayment
+    })
+  })
+    .then(res => res.json())
+    .then(response => {
+      if (response.id) {
+        currentPayment = response
+        displayPayment(currentPayment)
+      } else {
+        console.error(response)
+      }
+    })
+}
 
 const displayCurrentCommitment = () => {
 
@@ -112,7 +157,15 @@ const displayCurrentCommitment = () => {
   promiseHourProgressBar.innerText = commitmentHourProgressPercent + "%"
 
   promiseHourProgressDiv.append(promiseHourProgressBar)
-  commitmentCardPromiseDiv.append(promiseHourProgressInfo, promiseHourProgressDiv)
+
+  let makePaymentButton = document.createElement('button')
+  makePaymentButton.className = "btn btn-secondary"
+  makePaymentButton.innerText = "Make Payment"
+  makePaymentButton.addEventListener("click", (evt) => {
+    makePayment(currentCommitment)
+  })
+
+  commitmentCardPromiseDiv.append(promiseHourProgressInfo, promiseHourProgressDiv, makePaymentButton)
 
   commitmentCardBodyDiv.append(commitmentCardPromiseDiv)
 

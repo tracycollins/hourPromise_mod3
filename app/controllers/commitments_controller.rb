@@ -1,5 +1,20 @@
 class CommitmentsController < ApplicationController
   
+  def index
+    @commitments = Commitment.all
+    render json: @commitments
+  end
+
+  def show
+    @commitment = Commitment.find(params[:id])
+    if @commitment
+        render json: @commitment 
+    else
+        render json: {error: "No commitment with that id exists"}
+    end
+  end
+
+
   def create
     @commitment = Commitment.new(commitment_params)
     # byebug

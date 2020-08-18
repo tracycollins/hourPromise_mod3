@@ -5,4 +5,19 @@ class CausesController < ApplicationController
     render json: @causes
   end
 
+  private
+
+  def causes_params
+    params.require(:cause).permit(
+      :name,
+      :owner,
+      :description,
+      :fund_target,
+      :hour_target,
+      :start_date,
+      :end_date,
+      :status,
+      :org_id
+    )
+  end
 end

@@ -7,7 +7,6 @@ class PaymentsController < ApplicationController
 
   def create
     @payment = Payment.new(payment_params)
-    # byebug
     if @payment
       @payment.save
       render json: @payment 
@@ -15,7 +14,6 @@ class PaymentsController < ApplicationController
       render json: {error: "Payment create error"}
     end
   end
-
 
   def show
     @payment = Payment.find(params[:id])
@@ -25,18 +23,16 @@ class PaymentsController < ApplicationController
         render json: {error: "No payment with that id exists"}
     end
   end
-
   private
 
   def payment_params
     params.require(:payment).permit(
-      :id
       :date,
       :fund_amount,
       :hour_amount,
 
       :user_id, 
-      :commmitment_id
+      :commitment_id
     )
   end
 end

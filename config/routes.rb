@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   get "commitments", to: "commitments#index"
   get "commitments/:id", to: "commitments#show"
   
+  post "/payments/create", to: "payments#create"
   get "payments", to: "payments#index"
   get "payments/:id", to: "payments#show"
 end
