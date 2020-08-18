@@ -17,10 +17,14 @@ class CommitmentsController < ApplicationController
       :user_id, 
       :cause_id, 
       :start_date,
-      :end_date,
+      :created_date,
       :fund_amount,
+      :fund_recurring,
+      :funds_donated,
       :hour_amount,
-      :payment_number
+      :hour_recurring,
+      :hours_donated,
+      :status
     )
   end
 

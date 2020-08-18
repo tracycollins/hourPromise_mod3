@@ -235,13 +235,40 @@ let createNewCommitment = () => {
   commitmentCardBodyDiv.innerHTML = ""
   console.log("createNewCommitment ", currentCommitment)
 
+  // : user_id, 
+  // : cause_id, 
+  // : start_date,
+  // : created_date,
+  // : fund_amount,
+  // : fund_recurring,
+  // : funds_donated,
+  // : hour_amount,
+  // : hour_recurring,
+  // : hours_donated,
+  // : status
+
+  const commitment = {}
+  commitment.user_id = currentUser.id
+  commitment.cause_id = currentCause.id
+  commitment.start_date = currentCommitment.start_date
+
+  commitment.fund_amount = currentCommitment.fund_amount
+  commitment.fund_recurring = (currentCommitment.payment_number > 1) ? true : false
+  commitment.funds_donated = 0
+
+  commitment.hour_amount = currentCommitment.hour_amount
+  commitment.hour_recurring = (currentCommitment.payment_number > 1) ? true : false
+  commitment.hours_donated = 0
+
+  commitment.status = "active"
+
   fetch("http://localhost:3000/commitments/create", {
     method: "POST",
     headers: {
       "content-type": "application/json"
     },
     body: JSON.stringify({
-      commitment: currentCommitment
+      commitment: commitment
     })
   })
     .then(res => res.json())
