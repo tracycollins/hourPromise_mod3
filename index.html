@@ -35,53 +35,45 @@
 
 <body>
 
-  <div class="container">
-
-    <!-- <div class="jumbotron">
-      <img src="public/images/clock.gif" alt="clock" style="width:100px;margin:0px">
-      <h1 class="display-4">HourPromise</h1>
-    </div> -->
+  <div id="container" class="container-fluid centered">
 
     <nav class="navbar">
-      <div>
-        <a class="navbar-brand" href="#">
-          <img src="public/images/clock.gif" alt="clock" width="64" height="64" class="d-inline-block align-top"
-            loading="lazy">
-          HourPromise
-        </a>
+      <div id="navbar-div" class="d-inline-block">
+        <img src="public/images/clock.gif" alt="clock" width="96" height="96" loading="lazy">
+        <h1>HourPromise</h1>
+        <div id="navbar-controls-div"></div>
       </div>
     </nav>
 
-    <div class="row">
-      <div id="current-user-card" class="card border-0" style="width: 18rem;">
-        <div id="current-user" class="card-body"></div>
+    <div id="main-div" class="main">
+
+      <div id="main-status-div" class="mx-auto" style="width: 40rem;"></div>
+
+      <div id="commitment" class="commitment">
+        <div id="commitment-card" class="card border-0">
+          <div id="commitment-card-header" class="card-header"></div>
+          <div id="commitment-card-body" class="card-body"></div>
+          <div id="commitment-card-footer" class="card-footer"></div>
+        </div>
       </div>
-      <div id="current-user-error-card" class="card border-0" style="width: 18rem;">
-        <div id="current-user-error" class="card-body"></div>
+
+      <div id="payment" class="payment">
+        <div id="payment-card" class="card border-0">
+          <div id="payment-card-header" class="card-header"></div>
+          <div id="payment-card-body" class="card-body"></div>
+          <div id="payment-card-footer" class="card-footer"></div>
+        </div>
       </div>
+
+      <nav class="navbar">
+        <div id="navbar-user-div" class="d-inline-block">
+          <div id="current-user">
+            <div id="current-user-error"></div>
+          </div>
+        </div>
+      </nav>
     </div>
 
-    <div id="actions-card" class="card border-0" style="width: 24rem;">
-      <div id="actions" class="card-body"></div>
-    </div>
-
-    <div id="commitment" class="commitment">
-      <!-- <div id="commitment-card" class="card border-0" style="width: 36rem;"> -->
-      <div id="commitment-card" class="card border-0">
-        <div id="commitment-card-header" class="card-header"></div>
-        <div id="commitment-card-body" class="card-body"></div>
-        <div id="commitment-card-footer" class="card-footer"></div>
-      </div>
-    </div>
-
-    <div id="payment" class="payment">
-      <!-- <div id="payment-card" class="card border-0" style="width: 36rem;"> -->
-      <div id="payment-card" class="card border-0">
-        <div id="payment-card-header" class="card-header"></div>
-        <div id="payment-card-body" class="card-body"></div>
-        <div id="payment-card-footer" class="card-footer"></div>
-      </div>
-    </div>
   </div>
 
 </body>

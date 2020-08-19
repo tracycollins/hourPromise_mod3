@@ -9,7 +9,9 @@ class PaymentsController < ApplicationController
     @payment = Payment.new(payment_params)
     if @payment
       @payment.save
-      render json: @payment 
+      @payment.commitment.apply_payment(@payment)
+      @payment.commitment.save
+      render json: @payment.commitment 
     else
       render json: {error: "Payment create error"}
     end
