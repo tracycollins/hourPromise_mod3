@@ -33,22 +33,55 @@ createCommitmentButton.id = "create-commitment-button"
 createCommitmentButton.className = "btn btn-primary"
 createCommitmentButton.innerText = "Create New Promise"
 
-navBarControlsDiv.append(showCommitmentsButton, createCommitmentButton)
+const logOutButton = document.createElement("button")
+logOutButton.id = "logout-button"
+logOutButton.className = "btn btn-danger"
+logOutButton.innerHTML = "Logout"
+logOutButton.addEventListener("click", (evt) => {
+  logOut()
+})
+
+const showAllOrgsButton = document.createElement("button")
+showAllOrgsButton.id = "show-all-orgs-button"
+showAllOrgsButton.className = "btn btn-primary"
+showAllOrgsButton.innerHTML = "Browse Orgs"
+showAllOrgsButton.addEventListener("click", (evt) => {
+})
+
+const showUserProfile = document.createElement("button")
+showUserProfile.id = "show-user-profile-button"
+showUserProfile.className = "btn btn-primary"
+showUserProfile.innerHTML = "My Profile"
+showUserProfile.addEventListener("click", (evt) => {
+})
+
+navBarControlsDiv.append(showAllOrgsButton, showCommitmentsButton, createCommitmentButton, showUserProfile, logOutButton)
 
 const currentUserDiv = document.querySelector("#current-user")
 const currentUserErrorDiv = document.querySelector("#current-user-error")
 
 const commitmentDiv = document.querySelector("#commitment")
+commitmentDiv.classList.add("d-none")
+
+const orgDiv = document.querySelector("#org")
+orgDiv.classList.add("d-none")
+
+const causeCardDiv = document.querySelector("#cause-card")
+causeCardDiv.classList.add("d-none")
+const causeCardHeaderDiv = document.querySelector("#cause-card-header")
+const causeCardBodyDiv = document.querySelector("#cause-card-body")
+const causeCardFooterDiv = document.querySelector("#cause-card-footer")
+
 const commitmentCardHeaderDiv = document.querySelector("#commitment-card-header")
 const commitmentCardBodyDiv = document.querySelector("#commitment-card-body")
 const commitmentCardFooterDiv = document.querySelector("#commitment-card-footer")
-commitmentDiv.classList.add("d-none")
 
 const paymentCardDiv = document.querySelector("#payment")
+paymentCardDiv.classList.add("d-none")
+
 const paymentCardHeaderDiv = document.querySelector("#payment-card-header")
 const paymentCardBodyDiv = document.querySelector("#payment-card-body")
 const paymentCardFooterDiv = document.querySelector("#payment-card-footer")
-paymentCardDiv.classList.add("d-none")
 
 const defaultDateTimeFormat = "YYYY-MM-DD"
 const MINIMUM_WAGE = 8
@@ -63,135 +96,185 @@ let currentPayment
 
 let orgs = new Set()
 let causes = []
+let commitments = []
 
 const displayPayment = (payment) => {
   console.log(payment)
 }
 
-const makePayment = (commitment) => {
+const postPayment = async (newPayment) => {
 
-  paymentCardBodyDiv.innerHTML = ""
+  try {
 
-  const newPayment = {
-    user_id: currentUser.id,
-    commitment_id: commitment.id,
-    date: moment().format(defaultDateTimeFormat),
-    fund_amount: commitment.fund_amount,
-    hour_amount: commitment.hour_amount
+    const options = {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ payment: newPayment })
+    }
+
+    const res = await fetch("http://localhost:3000/payments/create", options)
+    const updatedCommitment = await res.json()
+
+    return updatedCommitment
+
+  }
+  catch (err) {
+    console.error("postPayment error: ", err)
+    throw err
   }
 
-  console.log("makePayment ", newPayment)
+}
 
-  fetch("http://localhost:3000/payments/create", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      payment: newPayment
-    })
-  })
-    .then(res => res.json())
-    .then(response => {
-      if (response.id) {
-        // returns the COMMITMENT + all payments on commitment
-        commitment = response
-        displayCommitment(commitment)
-      } else {
-        console.error(response)
-      }
-    })
+const makePayment = async (commitment) => {
+
+  try {
+
+    paymentCardBodyDiv.innerHTML = ""
+
+    commitment.fund_amount = commitment.fund_amount || 0;
+    commitment.hour_amount = commitment.hour_amount || 0;
+
+    const newPayment = {
+      user_id: currentUser.id,
+      commitment_id: commitment.id,
+      date: moment().format(defaultDateTimeFormat),
+      fund_amount: commitment.fund_amount,
+      hour_amount: commitment.hour_amount
+    }
+
+    console.log("makePayment ", newPayment)
+
+    const updatedCommitment = await postPayment(newPayment)
+
+    console.log("makePayment | updatedCommitment ", updatedCommitment)
+
+    return updatedCommitment
+  }
+  catch (err) {
+    console.error("makePayment | ERROR ", err)
+    throw err
+  }
+
+}
+
+const displayProgressBar = (params) => {
+
+  const progressDiv = document.createElement("div")
+  progressDiv.id = params.divId
+  progressDiv.classList.add(params.class)
+
+  const progressPercent = 100 * (params.currentAmount / params.targetAmount)
+
+  const progressInfo = document.createElement("p")
+  progressInfo.id = params.infoId
+  progressInfo.innerHTML = params.infoInnerHTML
+
+  const progressBar = document.createElement("div")
+  progressBar.classList.add("progress-bar")
+  progressBar.id = params.progressBarId
+  progressBar.role = "progressbar"
+  progressBar.style.width = progressPercent + "%"
+  progressBar.valuemin = 0
+  progressBar.valuenow = progressPercent
+  progressBar.valuemax = 100
+  progressBar.innerText = progressPercent.toFixed(0) + "%"
+
+  progressDiv.append(progressBar)
+  params.parentDiv.append(progressInfo, progressDiv)
+
 }
 
 const displayCommitment = (commitment) => {
 
+  causeCardDiv.classList.remove("d-none")
   commitmentDiv.classList.remove("d-none")
 
-  commitmentCardBodyDiv.innerHTML = ""
-  commitmentCardHeaderDiv.innerHTML = "Your Promise"
-  commitmentCardFooterDiv.innerHTML = `Thank you, ${currentUser.name}`
+  causeCardHeaderDiv.innerHTML = ""
+  causeCardBodyDiv.innerHTML = ""
+  causeCardFooterDiv.innerHTML = ""
 
-  const commitmentCardCauseDiv = document.createElement("div")
+  commitmentCardHeaderDiv.innerHTML = ""
+  commitmentCardBodyDiv.innerHTML = ""
+  commitmentCardFooterDiv.innerHTML = ""
+
+  causeCardHeaderDiv.innerHTML = `Organization<br><h4>${commitment.cause.org.name}</h4><br>Cause<br><h5>${commitment.cause.name}</h5>${commitment.cause.description}`
+  causeCardBodyDiv.innerHTML = ``
+
+  const causeTargetFund = document.createElement("div")
+  causeTargetFund.classList.add("cause-target")
+  causeTargetFund.innerHTML = `<h5>Funding</h5>`
+  const causeFundProgressDiv = displayProgressBar({
+    parentDiv: causeTargetFund,
+    divId: "cause-fund-progress-div",
+    class: "progress",
+    targetAmount: commitment.cause.fund_target,
+    currentAmount: commitment.cause.fund_donated,
+    infoId: "cause-fund-progress-info",
+    infoInnerHTML: `Goal: $${commitment.cause.fund_target} / Donated: $${commitment.cause.fund_donated}`,
+    progressBarId: "cause-fund-progress-bar"
+  })
+
+  const causeTargetHour = document.createElement("div")
+  causeTargetHour.classList.add("cause-target")
+  causeTargetHour.innerHTML = `<h5>Hours</h5>`
+  const causeHourProgressDiv = displayProgressBar({
+    parentDiv: causeTargetHour,
+    divId: "cause-hour-progress-div",
+    class: "progress",
+    targetAmount: commitment.cause.hour_target,
+    currentAmount: commitment.cause.hour_donated,
+    infoId: "cause-hour-progress-info",
+    infoInnerHTML: `Goal: ${commitment.cause.hour_target} / Donated: ${commitment.cause.hour_donated}`,
+    progressBarId: "cause-hour-progress-bar"
+  })
+
+  causeCardBodyDiv.append(causeTargetFund, causeTargetHour)
+
+  // USER PROMISE/COMMITMENT
+
+  commitmentCardHeaderDiv.innerHTML = `<h5>Your Promise to ${commitment.cause.name}</h5>`
+
   const commitmentCardPromiseDiv = document.createElement("div")
   commitmentCardPromiseDiv.classList.add("promise")
 
-  const orgName = document.createElement("h5")
-  // orgName.classList.add("card-title")
-  orgName.innerHTML = `<strong>Organization</strong><br>${commitment.cause.org.name}<hr>`
-
-  const causeName = document.createElement("h5")
-  // causeName.classList.add("card-subtitle")
-  causeName.classList.add("mb-2")
-  causeName.innerHTML = `<strong>Cause</strong><br>${commitment.cause.name}<hr>`
-
-  const causeDescription = document.createElement("p")
-  causeDescription.classList.add("mb-2")
-  causeDescription.innerHTML = `<strong>Description</strong><br>${commitment.cause.description}<hr>`
-
-  const causeTarget = document.createElement("h5")
-  // causeTarget.classList.add("mb-2")
-  causeTarget.innerHTML = `<strong>Targets</strong><br>$${commitment.cause.fund_target} | ${commitment.cause.hour_target} Hours<hr>`
-
-  commitmentCardCauseDiv.append(orgName, causeName, causeDescription, causeTarget)
-  commitmentCardBodyDiv.append(commitmentCardCauseDiv)
-
-  // promise progress fund
-  const promiseFundProgressDiv = document.createElement("div")
-  promiseFundProgressDiv.id = "promise-fund-progress-div"
-  promiseFundProgressDiv.classList.add("progress")
-
-  const commitmentFundProgressPercent = 100 * (commitment.fund_donated / commitment.fund_goal)
-
-  const promiseFundProgressInfo = document.createElement("p")
-  promiseFundProgressInfo.id = "promise-fund-progress-info"
-  promiseFundProgressInfo.innerHTML = `Fund Progress: Donated: $ ${commitment.fund_donated} / Goal: ${commitment.fund_goal}`
-
-  const promiseFundProgressBar = document.createElement("div")
-  promiseFundProgressBar.classList.add("progress-bar")
-  promiseFundProgressBar.id = "promise-fund-progress-bar"
-  promiseFundProgressBar.role = "progressbar"
-  promiseFundProgressBar.style.width = commitmentFundProgressPercent + "%"
-  promiseFundProgressBar.valuemin = 0
-  promiseFundProgressBar.valuenow = commitmentFundProgressPercent
-  promiseFundProgressBar.valuemax = 100
-  promiseFundProgressBar.innerText = commitmentFundProgressPercent.toFixed(0) + "%"
-
-  promiseFundProgressDiv.append(promiseFundProgressBar)
-  commitmentCardPromiseDiv.append(promiseFundProgressInfo, promiseFundProgressDiv)
-
-  // promise progress hour
-  const promiseHourProgressDiv = document.createElement("div")
-  promiseHourProgressDiv.id = "promise-hour-progress-div"
-  promiseHourProgressDiv.classList.add("progress")
-
-  const commitmentHourProgressPercent = 100 * (commitment.hour_donated / commitment.hour_goal)
-
-  const promiseHourProgressInfo = document.createElement("p")
-  promiseHourProgressInfo.id = "promise-hour-progress-info"
-  promiseHourProgressInfo.innerHTML = `Hour Progress: $ ${commitment.hour_donated} of ${commitment.hour_goal}`
-
-  const promiseHourProgressBar = document.createElement("div")
-  promiseHourProgressBar.classList.add("progress-bar")
-  promiseHourProgressBar.id = "promise-hour-progress-bar"
-  promiseHourProgressBar.role = "progressbar"
-  promiseHourProgressBar.style.width = commitmentHourProgressPercent + "%"
-  promiseHourProgressBar.valuemin = 0
-  promiseHourProgressBar.valuenow = commitmentHourProgressPercent
-  promiseHourProgressBar.valuemax = 100
-  promiseHourProgressBar.innerText = commitmentHourProgressPercent.toFixed(0) + "%"
-
-  promiseHourProgressDiv.append(promiseHourProgressBar)
-
-  let makePaymentButton = document.createElement('button')
-  makePaymentButton.className = "btn btn-success"
-  makePaymentButton.innerText = "Make A Payment"
-  makePaymentButton.addEventListener("click", (evt) => {
-    makePayment(commitment)
+  const promiseFundProgressDiv = displayProgressBar({
+    parentDiv: commitmentCardPromiseDiv,
+    divId: "promise-fund-progress-div",
+    class: "progress",
+    targetAmount: commitment.fund_goal,
+    currentAmount: commitment.fund_donated,
+    infoId: "promise-fund-progress-info",
+    infoInnerHTML: `Fund Progress: Goal: $${commitment.fund_goal} / Donated: $${commitment.fund_donated}`,
+    progressBarId: "promise-fund-progress-bar"
   })
 
-  commitmentCardPromiseDiv.append(promiseHourProgressInfo, promiseHourProgressDiv, makePaymentButton)
+  const promiseHourProgressDiv = displayProgressBar({
+    parentDiv: commitmentCardPromiseDiv,
+    divId: "promise-hour-progress-div",
+    class: "progress",
+    targetAmount: commitment.hour_goal,
+    currentAmount: commitment.hour_donated,
+    infoId: "promise-hour-progress-info",
+    infoInnerHTML: `Hour Progress: Goal: ${commitment.hour_goal} / Donated: ${commitment.hour_donated}`,
+    progressBarId: "promise-hour-progress-bar"
+  })
+
+  const makePaymentButton = document.createElement('button')
+  makePaymentButton.className = "btn btn-success"
+  makePaymentButton.innerText = "Make A Payment"
+  makePaymentButton.addEventListener("click", async (evt) => {
+    commitment = await makePayment(commitment)
+    displayCommitment(commitment)
+  })
+
+  const displayPayments = document.createElement('button')
+  displayPayments.className = "btn btn-success"
+  displayPayments.innerText = "Payments"
+  displayPayments.addEventListener("click", async (evt) => {
+  })
 
   commitmentCardBodyDiv.append(commitmentCardPromiseDiv)
+  commitmentCardFooterDiv.append(makePaymentButton, displayPayments)
 
 }
 
@@ -199,7 +282,7 @@ let createCommitment = (params) => {
 
   commitmentDiv.classList.remove("d-none")
 
-  commitmentCardHeaderDiv.innerHTML = "Creating a new promise"
+  commitmentCardHeaderDiv.innerHTML = `<h6>Creating a new promise</h6>`
   commitmentCardBodyDiv.innerHTML = ""
 
   const commitmentForm = document.createElement("form")
@@ -454,12 +537,9 @@ let createCommitment = (params) => {
   let confirmCreateCommitmentButton = document.createElement('button')
   confirmCreateCommitmentButton.type = "submit"
   confirmCreateCommitmentButton.className = "btn btn-primary"
-  confirmCreateCommitmentButton.innerText = "Submit New Promise?"
+  confirmCreateCommitmentButton.innerText = "Submit New Promise"
 
-  commitmentForm.addEventListener("submit", (evt) => {
-  })
-
-  commitmentForm.addEventListener("submit", (evt) => {
+  commitmentForm.addEventListener("submit", async (evt) => {
     evt.preventDefault()
     const formData = new FormData(commitmentForm);
 
@@ -473,17 +553,18 @@ let createCommitment = (params) => {
     currentCommitment.cause_id = evt.target.cause_id.value
     currentCommitment.fund_recurring = evt.target.fund_recurring.value
     currentCommitment.hour_recurring = evt.target.hour_recurring.value
-    postNewCommitment()
+    currentCommitment = await postCommitment(currentCommitment)
+    displayCommitment(currentCommitment)
   })
 
-  let backButton = document.createElement('button')
-  backButton.className = "btn btn-secondary"
-  backButton.innerText = "Back"
-  backButton.addEventListener("click", (evt) => {
-    // showCommitmentPaymentScheduleForm()
-  })
+  // let backButton = document.createElement('button')
+  // backButton.className = "btn btn-secondary"
+  // backButton.innerText = "Back"
+  // backButton.addEventListener("click", (evt) => {
+  //   // showCommitmentPaymentScheduleForm()
+  // })
 
-  commitmentForm.append(cardTable, backButton, confirmCreateCommitmentButton)
+  commitmentForm.append(cardTable, confirmCreateCommitmentButton)
   commitmentCardBodyDiv.append(commitmentForm)
 }
 
@@ -531,32 +612,27 @@ let showLoginForm = () => {
 
 }
 
-let postNewCommitment = () => {
-  commitmentCardBodyDiv.innerHTML = ""
-  console.log("postNewCommitment ", currentCommitment)
+const postCommitment = async (commitment) => {
 
-  fetch("http://localhost:3000/commitments/create", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      commitment: currentCommitment
-    })
-  })
-    .then(res => res.json())
-    .then(response => {
-      if (response.id) {
-        currentCommitment = response
-        displayCommitment(currentCommitment)
-      } else {
-        console.error(response)
-      }
-    })
-}
+  try {
 
-let showCommitmentCreateConfirmation = () => {
-  // showCommitment({ isConfirmation: true })
+    const options = {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ commitment: commitment })
+    }
+
+    const res = await fetch("http://localhost:3000/commitments/create", options)
+    const newCommitment = await res.json()
+
+    return newCommitment
+
+  }
+  catch (err) {
+    console.error("postCommitment error: ", err)
+    throw err
+  }
+
 }
 
 let handleLoginForm = (evt) => {
@@ -588,7 +664,7 @@ let handleLoginForm = (evt) => {
 let showUserInformation = (user) => {
   setCurrentUser(user)
   setNavBar()
-  displayUserCommmitments()
+  displayCommmitments(user.commitments)
 }
 
 let showUserLoginError = (response) => {
@@ -603,28 +679,28 @@ let setCurrentUser = (user) => {
   let username = document.createElement("p")
   username.className = "font-weight-bold"
   username.innerHTML = `Logged in as ${user.name}`
-
-  let logOutButton = document.createElement("button")
-  logOutButton.className = "btn btn-danger"
-  logOutButton.innerHTML = "Logout"
-
-  currentUserDiv.append(username, logOutButton)
-
-  logOutButton.addEventListener("click", (evt) => {
-    logOut()
-  })
-
 }
 
 const fetchCauses = async () => {
-
   try {
     const res = await fetch("http://localhost:3000/causes")
     const causes = await res.json()
     return causes
   }
   catch (err) {
-    console.error("getCauses error: ", err)
+    console.error("fetchCauses error: ", err)
+    throw err
+  }
+}
+
+const fetchCommitments = async () => {
+  try {
+    const res = await fetch(`http://localhost:3000/users/${currentUser.username}/commitments`)
+    const commitments = await res.json()
+    return commitments
+  }
+  catch (err) {
+    console.error("fetchCommitments error: ", err)
     throw err
   }
 }
@@ -634,7 +710,8 @@ let setNavBar = () => {
   navBarControlsDiv.classList.remove("d-none")
 
   showCommitmentsButton.addEventListener("click", async (evt) => {
-    displayUserCommmitments()
+    commitments = await fetchCommitments()
+    displayCommmitments(commitments)
   })
 
   createCommitmentButton.addEventListener("click", async (evt) => {
@@ -670,17 +747,14 @@ let setNavBar = () => {
   })
 }
 
-const displayUserCommmitments = () => {
-
-  if (currentUser.commitments.length === 0) {
-    const noCommitmentsH1 = document.createElement("h1")
-    noCommitmentsH1.innerHTML = `No Promises yet?<br><br>Let's <a href="#">Create A New Promise</a> now`
-    mainStatusDiv.append(noCommitmentsH1)
-    return
-  }
+const displayCommmitments = (commitments) => {
 
   commitmentDiv.classList.remove("d-none")
+  causeCardDiv.classList.add("d-none")
+
+  commitmentCardHeaderDiv.innerHTML = ""
   commitmentCardBodyDiv.innerHTML = ""
+  commitmentCardFooterDiv.innerHTML = ""
 
   const table = document.createElement("table")
   table.className = "table"
@@ -749,7 +823,7 @@ const displayUserCommmitments = () => {
     commitmentHeaderHourGoal
   )
 
-  currentUser.commitments.forEach(commitment => {
+  commitments.forEach(commitment => {
 
     const tableRow = document.createElement("tr")
     tableRow.scope = "row"
@@ -846,4 +920,5 @@ fetch("http://localhost:3000/users/login", {
     } else {
       showUserLoginError(response)
     }
+
   })

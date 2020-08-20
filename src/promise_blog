@@ -1,0 +1,26 @@
+---
+
+I think I'll (async &) (a)wait
+How to not let synchronous code rash your JS flow
+Javascript is a single-threaded programming environment. That means that typically your Javascript code can only be doing one thing at any point in time. Generally this restriction isn't an issue for many operations, like adding numbers, updating a variable in memory etc, that can be completed in one pass through the "event loop".
+The issue with a single thread becomes painfully clear when a program needs to perform an operation that may take a long time to complete, like reading a large file from a disk or uploading a file to the cloud. While this operation is taking its time, the queue of pending operations is stalled or "blocked" and everything (at least in this program) grinds to a halt. Imagine a store with only one register open with a cashier-in-training, and a long line of angry customers…
+If we as humans perceive a program to be running slowly, imagine what your code must be feeling…
+This is where asynchronous programming comes in: Javascript promises that an operation will resolve (successfully or maybe not) at some time in the future, so you (and your code) don't need to wait around and can make better use of your time by doing something else. When the operation ends, , then it can send the rest of your code its results, or (hopefully) throw an error message if something goes sideways.
+
+
+---
+
+Asynchronous code in javascript can have a couple of different forms:
+ There's the Promise using "then" and callback functions …
+const promiseToFinishSomeday = new Promise((resolve,rejection) => {
+  if (slowPokeFunc()) { resolve("YES!"); } else { reject("BOO!) }
+})
+promiseToFinishSomeday
+.then(result => console.log)
+.catch(err => console.err)
+… or the form I prefer: Async/Await:
+const promiseToFinishSomeday = new Promise((resolve,rejection) => {
+  if (slowPokeFunc()) { resolve("YES!"); } else { reject("BOO!) }
+})
+const result = await promiseToFinishSomeday().catch(console.err)
+What I like about the async/await form is I find it cleaner, easier to read, and the operation of the code is clearer. A simple example like this doesn't quite show the full benefit of the async/await, but imagine if you wanted to perform a chain of operations (that will also take some time) with the data returned from each previous "then"… Using

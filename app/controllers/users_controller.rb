@@ -13,4 +13,32 @@ class UsersController < ApplicationController
         render json: {error: "No user with that username exists"}
     end
   end
+
+  def payments
+    @user = User.find_by(username: params[:username])
+    if @user
+        render json: @user.payments
+    else
+        render json: {error: "No user with that username exists"}
+    end
+  end
+  
+  def commitments
+    @user = User.find_by(username: params[:username])
+    if @user
+        render json: @user.commitments
+    else
+        render json: {error: "No user with that username exists"}
+    end
+  end
+  
+  def causes
+    @user = User.find_by(username: params[:username])
+    if @user
+        render json: @user.causes
+    else
+        render json: {error: "No user with that username exists"}
+    end
+  end
+  
 end

@@ -8,6 +8,7 @@ class CommitmentsController < ApplicationController
   def show
     @commitment = Commitment.find(params[:id])
     if @commitment
+        @commitment.update_stats
         render json: @commitment 
     else
         render json: {error: "No commitment with that id exists"}

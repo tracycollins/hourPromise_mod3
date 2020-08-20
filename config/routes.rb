@@ -4,6 +4,9 @@ Rails.application.routes.draw do
   
   get "users", to: "users#index"
   get "users/:id", to: "users#show"
+  get "users/:username/causes", to: "users#causes"
+  get "users/:username/commitments", to: "users#commitments"
+  get "users/:username/payments", to: "users#payments"
   
   get "orgs", to: "orgs#index"
   get "orgs/:id", to: "orgs#show"
