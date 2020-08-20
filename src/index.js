@@ -41,11 +41,13 @@ logOutButton.addEventListener("click", (evt) => {
   logOut()
 })
 
-const showAllOrgsButton = document.createElement("button")
-showAllOrgsButton.id = "show-all-orgs-button"
-showAllOrgsButton.className = "btn btn-primary"
-showAllOrgsButton.innerHTML = "Browse Orgs"
-showAllOrgsButton.addEventListener("click", (evt) => {
+const displayOrgsButton = document.createElement("button")
+displayOrgsButton.id = "display-orgs-button"
+displayOrgsButton.className = "btn btn-primary"
+displayOrgsButton.innerHTML = "Browse Orgs"
+displayOrgsButton.addEventListener("click", async (evt) => {
+  const orgs = await fetchOrgs()
+  await displayOrgs(orgs)
 })
 
 const showUserProfile = document.createElement("button")
@@ -55,7 +57,7 @@ showUserProfile.innerHTML = "My Profile"
 showUserProfile.addEventListener("click", (evt) => {
 })
 
-navBarControlsDiv.append(showAllOrgsButton, showCommitmentsButton, createCommitmentButton, showUserProfile, logOutButton)
+navBarControlsDiv.append(displayOrgsButton, showCommitmentsButton, createCommitmentButton, showUserProfile, logOutButton)
 
 const currentUserDiv = document.querySelector("#current-user")
 const currentUserErrorDiv = document.querySelector("#current-user-error")
@@ -65,6 +67,9 @@ commitmentDiv.classList.add("d-none")
 
 const orgDiv = document.querySelector("#org")
 orgDiv.classList.add("d-none")
+const orgCardHeaderDiv = document.querySelector("#org-card-header")
+const orgCardBodyDiv = document.querySelector("#org-card-body")
+const orgCardFooterDiv = document.querySelector("#org-card-footer")
 
 const causeCardDiv = document.querySelector("#cause-card")
 causeCardDiv.classList.add("d-none")
@@ -98,7 +103,17 @@ let orgs = new Set()
 let causes = []
 let commitments = []
 
+const clearMainDiv = () => {
+  orgDiv.classList.add("d-none")
+  causeCardDiv.classList.add("d-none")
+  commitmentDiv.classList.add("d-none")
+  causeCardDiv.classList.add("d-none")
+  commitmentDiv.classList.add("d-none")
+  causeCardDiv.classList.add("d-none")
+}
+
 const displayPayment = (payment) => {
+  clearMainDiv()
   console.log(payment)
 }
 
@@ -184,8 +199,153 @@ const displayProgressBar = (params) => {
 
 }
 
+const displayCause = (cause) => {
+  clearMainDiv()
+}
+
+const displayCauses = (params) => {
+
+  const causesTable = document.createElement("table")
+  causesTable.id = params.tableId
+  causesTable.classList.add(params.class)
+
+  const table = document.createElement("table")
+  table.classList = "table orgs"
+
+  const tableHeader = document.createElement("thead")
+  const tableHeaderRow = document.createElement("tr")
+  const tableBody = document.createElement("tbody")
+
+  const causesHeaderInfo = document.createElement("th")
+  const causesHeaderStatus = document.createElement("th")
+
+  causesHeaderInfo.innerText = "Cause"
+  causesHeaderStatus.innerText = "Status"
+
+  causesHeaderInfo.scope = "col"
+  causesHeaderStatus.scope = "col"
+
+  tableHeaderRow.append(
+    causesHeaderInfo,
+    causesHeaderStatus
+  )
+
+  params.causes.forEach(cause => {
+
+    const tableRow = document.createElement("tr")
+    tableRow.scope = "row"
+
+    const cellInfo = document.createElement("td")
+    cellInfo.innerHTML = `<strong>${cause.name}</strong><br><i>${cause.description}</i>`
+    cellInfo.addEventListener("click", (evt) => {
+      displayCause(cause)
+    })
+
+    const cellStatus = document.createElement("td")
+    cellStatus.innerHTML = `${cause.status}`
+
+    tableRow.append(
+      cellInfo,
+      cellStatus
+    )
+
+    tableBody.append(tableRow)
+  })
+
+  tableHeader.append(tableHeaderRow)
+  table.append(tableHeader)
+  table.append(tableBody)
+  params.parentDiv.append(table)
+
+}
+
+const displayOrg = async (org) => {
+
+  clearMainDiv()
+  orgDiv.classList.remove("d-none")
+
+  orgCardHeaderDiv.innerHTML = `<strong>${org.name}</strong><br><i>${org.tagline}</i>`
+  orgCardBodyDiv.innerHTML = ""
+  orgCardFooterDiv.innerHTML = ""
+
+  displayCauses({
+    parentDiv: orgCardBodyDiv,
+    causes: org.causes,
+    tableId: "org-causes-table",
+    class: "org-causes-table"
+  })
+}
+
+const displayOrgs = async (orgs) => {
+
+  clearMainDiv()
+  orgDiv.classList.remove("d-none")
+
+  orgCardHeaderDiv.innerHTML = ""
+  orgCardBodyDiv.innerHTML = ""
+  orgCardFooterDiv.innerHTML = ""
+
+  const table = document.createElement("table")
+  table.classList = "table orgs"
+
+  const tableHeader = document.createElement("thead")
+  const tableHeaderRow = document.createElement("tr")
+  const tableBody = document.createElement("tbody")
+
+  const orgsHeaderName = document.createElement("th")
+  const orgsHeaderAddress = document.createElement("th")
+  const orgsHeaderCauses = document.createElement("th")
+
+  orgsHeaderName.innerText = "Organization"
+  orgsHeaderAddress.innerText = "City / State"
+  orgsHeaderCauses.innerText = "Causes"
+
+  orgsHeaderName.scope = "col"
+  orgsHeaderCauses.scope = "col"
+  orgsHeaderAddress.scope = "col"
+
+  tableHeaderRow.append(
+    orgsHeaderName,
+    orgsHeaderAddress,
+    orgsHeaderCauses
+  )
+
+  orgs.forEach(org => {
+
+    const tableRow = document.createElement("tr")
+    tableRow.scope = "row"
+
+    const cellName = document.createElement("td")
+    cellName.innerHTML = `<strong>${org.name}</strong><br><i>${org.tagline}</i>`
+    cellName.addEventListener("click", (evt) => {
+      displayOrg(org)
+    })
+
+    const cellCauses = document.createElement("td")
+    cellCauses.innerHTML = `${org.causes.length}`
+
+    const cellAddress = document.createElement("td")
+    cellAddress.innerHTML = `${org.address}`
+
+    tableRow.append(
+      cellName,
+      cellAddress,
+      cellCauses
+    )
+
+    tableBody.append(tableRow)
+  })
+
+  tableHeader.append(tableHeaderRow)
+  table.append(tableHeader)
+  table.append(tableBody)
+
+  orgCardBodyDiv.append(table)
+}
+
 const displayCommitment = (commitment) => {
 
+  clearMainDiv()
   causeCardDiv.classList.remove("d-none")
   commitmentDiv.classList.remove("d-none")
 
@@ -203,6 +363,7 @@ const displayCommitment = (commitment) => {
   const causeTargetFund = document.createElement("div")
   causeTargetFund.classList.add("cause-target")
   causeTargetFund.innerHTML = `<h5>Funding</h5>`
+
   const causeFundProgressDiv = displayProgressBar({
     parentDiv: causeTargetFund,
     divId: "cause-fund-progress-div",
@@ -232,7 +393,7 @@ const displayCommitment = (commitment) => {
 
   // USER PROMISE/COMMITMENT
 
-  commitmentCardHeaderDiv.innerHTML = `<h5>Your Promise to ${commitment.cause.name}</h5>`
+  commitmentCardHeaderDiv.innerHTML = `<h5>Your Promise to <i>${commitment.cause.name}</i></h5>`
 
   const commitmentCardPromiseDiv = document.createElement("div")
   commitmentCardPromiseDiv.classList.add("promise")
@@ -278,7 +439,156 @@ const displayCommitment = (commitment) => {
 
 }
 
+const displayCommmitments = (commitments) => {
+
+  clearMainDiv()
+  commitmentDiv.classList.remove("d-none")
+
+  commitmentCardHeaderDiv.innerHTML = ""
+  commitmentCardBodyDiv.innerHTML = ""
+  commitmentCardFooterDiv.innerHTML = ""
+
+  const table = document.createElement("table")
+  table.className = "table"
+
+  const tableHeader = document.createElement("thead")
+  const tableHeaderRow = document.createElement("tr")
+  const tableBody = document.createElement("tbody")
+
+  const commitmentHeaderCause = document.createElement("th")
+  const commitmentHeaderStatus = document.createElement("th")
+  const commitmentHeaderStartDate = document.createElement("th")
+  const commitmentHeaderEndDate = document.createElement("th")
+
+  const commitmentHeaderFundAmount = document.createElement("th")
+  const commitmentHeaderFundRecurring = document.createElement("th")
+  const commitmentHeaderFundDonated = document.createElement("th")
+  const commitmentHeaderFundGoal = document.createElement("th")
+
+  const commitmentHeaderHourAmount = document.createElement("th")
+  const commitmentHeaderHourRecurring = document.createElement("th")
+  const commitmentHeaderHourDonated = document.createElement("th")
+  const commitmentHeaderHourGoal = document.createElement("th")
+
+  commitmentHeaderCause.innerText = "Cause"
+  commitmentHeaderStatus.innerText = "Status"
+  commitmentHeaderStartDate.innerText = "Start"
+  commitmentHeaderEndDate.innerText = "End"
+
+  commitmentHeaderFundAmount.innerText = "$"
+  commitmentHeaderFundRecurring.innerText = "REC"
+  commitmentHeaderFundDonated.innerText = "Total ($)"
+  commitmentHeaderFundGoal.innerText = "Goal"
+
+  commitmentHeaderHourAmount.innerText = "Hour"
+  commitmentHeaderHourRecurring.innerText = "REC"
+  commitmentHeaderHourDonated.innerText = "Total"
+  commitmentHeaderHourGoal.innerText = "Goal"
+
+  commitmentHeaderCause.scope = "col"
+  commitmentHeaderStatus.scope = "col"
+  commitmentHeaderStartDate.scope = "col"
+  commitmentHeaderEndDate.scope = "col"
+
+  commitmentHeaderFundAmount.scope = "col"
+  commitmentHeaderFundRecurring.scope = "col"
+  commitmentHeaderFundDonated.scope = "col"
+  commitmentHeaderFundGoal.scope = "col"
+
+  commitmentHeaderHourAmount.scope = "col"
+  commitmentHeaderHourRecurring.scope = "col"
+  commitmentHeaderHourDonated.scope = "col"
+  commitmentHeaderHourGoal.scope = "col"
+
+  tableHeaderRow.append(
+    commitmentHeaderCause,
+    commitmentHeaderStatus,
+    commitmentHeaderStartDate,
+    commitmentHeaderEndDate,
+    commitmentHeaderFundAmount,
+    commitmentHeaderFundRecurring,
+    commitmentHeaderFundDonated,
+    commitmentHeaderFundGoal,
+    commitmentHeaderHourAmount,
+    commitmentHeaderHourRecurring,
+    commitmentHeaderHourDonated,
+    commitmentHeaderHourGoal
+  )
+
+  commitments.forEach(commitment => {
+
+    const tableRow = document.createElement("tr")
+    tableRow.scope = "row"
+
+    const cellName = document.createElement("td")
+    cellName.innerText = commitment.cause.name
+    cellName.addEventListener("click", (evt) => {
+      displayCommitment(commitment)
+    })
+
+    const cellStatus = document.createElement("td")
+    cellStatus.innerText = commitment.cause.status
+
+    const cellStartDate = document.createElement("td")
+    cellStartDate.innerText = commitment.cause.start_date
+
+    const cellEndDate = document.createElement("td")
+    cellEndDate.innerText = commitment.cause.end_date
+
+
+    const cellFundAmount = document.createElement("td")
+    cellFundAmount.innerText = commitment.fund_amount
+
+    const cellFundRecurring = document.createElement("td")
+    cellFundRecurring.innerText = commitment.fund_recurring
+
+    const cellFundDonated = document.createElement("td")
+    cellFundDonated.innerText = commitment.fund_donated
+
+    const cellFundGoal = document.createElement("td")
+    cellFundGoal.innerText = commitment.fund_goal
+
+
+    const cellHourAmount = document.createElement("td")
+    cellHourAmount.innerText = commitment.hour_amount
+
+    const cellHourRecurring = document.createElement("td")
+    cellHourRecurring.innerText = commitment.hour_recurring
+
+    const cellHourDonated = document.createElement("td")
+    cellHourDonated.innerText = commitment.hour_donated
+
+    const cellHourGoal = document.createElement("td")
+    cellHourGoal.innerText = commitment.hour_goal
+
+    tableRow.append(
+      cellName,
+      cellStatus,
+      cellStartDate,
+      cellEndDate,
+      cellFundAmount,
+      cellFundRecurring,
+      cellFundDonated,
+      cellFundGoal,
+      cellHourAmount,
+      cellHourRecurring,
+      cellHourDonated,
+      cellHourGoal
+    )
+
+    tableBody.append(tableRow)
+  })
+
+  tableHeader.append(tableHeaderRow)
+  table.append(tableHeader)
+  table.append(tableBody)
+
+  commitmentCardBodyDiv.append(table)
+}
+
 let createCommitment = (params) => {
+
+  clearMainDiv()
 
   commitmentDiv.classList.remove("d-none")
 
@@ -445,7 +755,7 @@ let createCommitment = (params) => {
   const tableFundRecurringInput = document.createElement("input")
   tableFundRecurringInput.name = "fund_recurring"
   tableFundRecurringInput.type = "checkbox"
-  tableFundRecurringInput.value = currentCommitment.fund_recurring
+  tableFundRecurringInput.checked = currentCommitment.fund_recurring
 
   tableFundRecurringCell.append(tableFundRecurringInput)
   tableFundRecurringRow.append(tableFundRecurringLabelCell)
@@ -525,7 +835,7 @@ let createCommitment = (params) => {
   const tableHourRecurringInput = document.createElement("input")
   tableHourRecurringInput.name = "hour_recurring"
   tableHourRecurringInput.type = "checkbox"
-  tableHourRecurringInput.value = currentCommitment.hour_recurring
+  tableHourRecurringInput.checked = currentCommitment.hour_recurring
 
   tableHourRecurringCell.append(tableHourRecurringInput)
   tableHourRecurringRow.append(tableHourRecurringLabelCell)
@@ -569,7 +879,7 @@ let createCommitment = (params) => {
 }
 
 let showLoginForm = () => {
-
+  clearMainDiv()
   currentUserDiv.innerHTML = ""
   currentUserErrorDiv.innerHTML = ""
   commitmentCardHeaderDiv.innerHTML = ""
@@ -578,13 +888,9 @@ let showLoginForm = () => {
   navBarControlsDiv.classList.add("d-none")
 
   let loginForm = document.createElement("form")
-  // loginForm.classList.add("centered")
-  // loginForm.classList.add("form-inline")
-  // loginForm.className = "form-inline mb-2 mr-sm-2"
   loginForm.className = "form-inline"
 
   let loginFormGroupDiv = document.createElement('div')
-  // loginFormGroupDiv.className = "form-group mb-2 mr-sm-2"
   loginFormGroupDiv.className = "form-group"
 
   let usernameLabel = document.createElement("label")
@@ -662,6 +968,7 @@ let handleLoginForm = (evt) => {
 }
 
 let showUserInformation = (user) => {
+  clearMainDiv()
   setCurrentUser(user)
   setNavBar()
   displayCommmitments(user.commitments)
@@ -679,6 +986,18 @@ let setCurrentUser = (user) => {
   let username = document.createElement("p")
   username.className = "font-weight-bold"
   username.innerHTML = `Logged in as ${user.name}`
+}
+
+const fetchOrgs = async () => {
+  try {
+    const res = await fetch("http://localhost:3000/orgs")
+    const orgs = await res.json()
+    return orgs
+  }
+  catch (err) {
+    console.error("fetchOrgs error: ", err)
+    throw err
+  }
 }
 
 const fetchCauses = async () => {
@@ -745,153 +1064,6 @@ let setNavBar = () => {
     mainStatusDiv.classList.add("d-none")
     createCommitment()
   })
-}
-
-const displayCommmitments = (commitments) => {
-
-  commitmentDiv.classList.remove("d-none")
-  causeCardDiv.classList.add("d-none")
-
-  commitmentCardHeaderDiv.innerHTML = ""
-  commitmentCardBodyDiv.innerHTML = ""
-  commitmentCardFooterDiv.innerHTML = ""
-
-  const table = document.createElement("table")
-  table.className = "table"
-
-  const tableHeader = document.createElement("thead")
-  const tableHeaderRow = document.createElement("tr")
-  const tableBody = document.createElement("tbody")
-
-  const commitmentHeaderCause = document.createElement("th")
-  const commitmentHeaderStatus = document.createElement("th")
-  const commitmentHeaderStartDate = document.createElement("th")
-  const commitmentHeaderEndDate = document.createElement("th")
-
-  const commitmentHeaderFundAmount = document.createElement("th")
-  const commitmentHeaderFundRecurring = document.createElement("th")
-  const commitmentHeaderFundDonated = document.createElement("th")
-  const commitmentHeaderFundGoal = document.createElement("th")
-
-  const commitmentHeaderHourAmount = document.createElement("th")
-  const commitmentHeaderHourRecurring = document.createElement("th")
-  const commitmentHeaderHourDonated = document.createElement("th")
-  const commitmentHeaderHourGoal = document.createElement("th")
-
-  commitmentHeaderCause.innerText = "Cause"
-  commitmentHeaderStatus.innerText = "Status"
-  commitmentHeaderStartDate.innerText = "Start"
-  commitmentHeaderEndDate.innerText = "End"
-
-  commitmentHeaderFundAmount.innerText = "$"
-  commitmentHeaderFundRecurring.innerText = "REC"
-  commitmentHeaderFundDonated.innerText = "Total ($)"
-  commitmentHeaderFundGoal.innerText = "Goal"
-
-  commitmentHeaderHourAmount.innerText = "Hour"
-  commitmentHeaderHourRecurring.innerText = "REC"
-  commitmentHeaderHourDonated.innerText = "Total"
-  commitmentHeaderHourGoal.innerText = "Goal"
-
-  commitmentHeaderCause.scope = "col"
-  commitmentHeaderStatus.scope = "col"
-  commitmentHeaderStartDate.scope = "col"
-  commitmentHeaderEndDate.scope = "col"
-
-  commitmentHeaderFundAmount.scope = "col"
-  commitmentHeaderFundRecurring.scope = "col"
-  commitmentHeaderFundDonated.scope = "col"
-  commitmentHeaderFundGoal.scope = "col"
-
-  commitmentHeaderHourAmount.scope = "col"
-  commitmentHeaderHourRecurring.scope = "col"
-  commitmentHeaderHourDonated.scope = "col"
-  commitmentHeaderHourGoal.scope = "col"
-
-  tableHeaderRow.append(
-    commitmentHeaderCause,
-    commitmentHeaderStatus,
-    commitmentHeaderStartDate,
-    commitmentHeaderEndDate,
-    commitmentHeaderFundAmount,
-    commitmentHeaderFundRecurring,
-    commitmentHeaderFundDonated,
-    commitmentHeaderFundGoal,
-    commitmentHeaderHourAmount,
-    commitmentHeaderHourRecurring,
-    commitmentHeaderHourDonated,
-    commitmentHeaderHourGoal
-  )
-
-  commitments.forEach(commitment => {
-
-    const tableRow = document.createElement("tr")
-    tableRow.scope = "row"
-
-    const cellName = document.createElement("td")
-    cellName.innerText = commitment.cause.name
-    cellName.addEventListener("click", (evt) => {
-      displayCommitment(commitment)
-    })
-
-    const cellStatus = document.createElement("td")
-    cellStatus.innerText = commitment.cause.status
-
-    const cellStartDate = document.createElement("td")
-    cellStartDate.innerText = commitment.cause.start_date
-
-    const cellEndDate = document.createElement("td")
-    cellEndDate.innerText = commitment.cause.end_date
-
-
-    const cellFundAmount = document.createElement("td")
-    cellFundAmount.innerText = commitment.fund_amount
-
-    const cellFundRecurring = document.createElement("td")
-    cellFundRecurring.innerText = commitment.fund_recurring
-
-    const cellFundDonated = document.createElement("td")
-    cellFundDonated.innerText = commitment.fund_donated
-
-    const cellFundGoal = document.createElement("td")
-    cellFundGoal.innerText = commitment.fund_goal
-
-
-    const cellHourAmount = document.createElement("td")
-    cellHourAmount.innerText = commitment.hour_amount
-
-    const cellHourRecurring = document.createElement("td")
-    cellHourRecurring.innerText = commitment.hour_recurring
-
-    const cellHourDonated = document.createElement("td")
-    cellHourDonated.innerText = commitment.hour_donated
-
-    const cellHourGoal = document.createElement("td")
-    cellHourGoal.innerText = commitment.hour_goal
-
-    tableRow.append(
-      cellName,
-      cellStatus,
-      cellStartDate,
-      cellEndDate,
-      cellFundAmount,
-      cellFundRecurring,
-      cellFundDonated,
-      cellFundGoal,
-      cellHourAmount,
-      cellHourRecurring,
-      cellHourDonated,
-      cellHourGoal
-    )
-
-    tableBody.append(tableRow)
-  })
-
-  tableHeader.append(tableHeaderRow)
-  table.append(tableHeader)
-  table.append(tableBody)
-
-  commitmentCardBodyDiv.append(table)
 }
 
 let logOut = () => {
