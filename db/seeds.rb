@@ -11,10 +11,10 @@ Cause.destroy_all
 User.destroy_all
 Org.destroy_all
 
-num_orgs = 5
-num_individuals = 7
-num_causes = 7
-num_commitments = 11
+num_orgs = 25
+num_individuals = 8
+num_causes = 40
+num_commitments = 47
 num_payments = 0
 
 User.create([
@@ -82,8 +82,8 @@ num_causes.times do |index|
     name: Faker::Company.bs.capitalize,
     start_date: cause_start_date,
     end_date: cause_end_date,
-    fund_goal: rand(1..100_000),
-    hour_goal: rand(1..100_000),
+    fund_goal: rand(1..10_000),
+    hour_goal: rand(1..10_000),
     fund_status: "open",
     hour_status: "open",
     status: "open",

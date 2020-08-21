@@ -1,5 +1,10 @@
 const defaultDateTimeFormat = "YYYY-MM-DD"
+const simulatedDateInterval = 500
 
+const simulatedMoment = moment("2020-01-01");
+// let simulatedDate = simulatedMoment.add(1, "day").format(defaultDateTimeFormat)
+let simulatedDate = moment(simulatedMoment)
+const currentDateElement = document.querySelector("#current-date")
 
 const configuration = {}
 configuration.commitment = {}
@@ -8,14 +13,14 @@ configuration.commitment.cause.id = null
 configuration.commitment.fund = {}
 configuration.commitment.fund.default = {}
 configuration.commitment.fund.default.donated = 0
-configuration.commitment.fund.default.duration_months = 12
-configuration.commitment.fund.default.amount = 10
+configuration.commitment.fund.default.duration_months = 60
+configuration.commitment.fund.default.amount = 12
 configuration.commitment.fund.default.goal = configuration.commitment.fund.default.duration_months * configuration.commitment.fund.default.amount
 configuration.commitment.hour = {}
 configuration.commitment.hour.default = {}
 configuration.commitment.hour.default.donated = 0
-configuration.commitment.hour.default.duration_months = 12
-configuration.commitment.hour.default.amount = 4
+configuration.commitment.hour.default.duration_months = 60
+configuration.commitment.hour.default.amount = 2
 configuration.commitment.hour.default.goal = configuration.commitment.hour.default.duration_months * configuration.commitment.hour.default.amount
 
 let currentUser = {}
@@ -47,6 +52,39 @@ const createCommitmentButton = document.createElement("button")
 createCommitmentButton.id = "create-commitment-button"
 createCommitmentButton.className = "btn btn-primary"
 createCommitmentButton.innerText = "Create New Promise"
+createCommitmentButton.addEventListener("click", async (evt) => {
+
+  causes = await fetchCauses();
+
+  currentCause = {}
+
+  currentCommitment = {}
+
+  currentCommitment.user_id = currentUserDiv.id
+  currentCommitment.cause_id = null
+  currentCommitment.status = "open"
+
+  currentCommitment.fund_duration = configuration.commitment.fund.default.duration_months
+  currentCommitment.fund_start_date = simulatedMoment.format(defaultDateTimeFormat)
+  const fundEndMoment = moment(simulatedMoment)
+  currentCommitment.fund_end_date = fundEndMoment.add(configuration.commitment.fund.default.duration_months, 'months').format(defaultDateTimeFormat)
+  currentCommitment.fund_goal = configuration.commitment.fund.default.goal
+  currentCommitment.fund_donated = 0
+  currentCommitment.fund_amount = configuration.commitment.fund.default.amount
+  currentCommitment.fund_recurring = true
+
+  currentCommitment.hour_duration = configuration.commitment.hour.default.duration_months
+  currentCommitment.hour_start_date = simulatedMoment.format(defaultDateTimeFormat)
+  const hourEndMoment = moment(simulatedMoment)
+  currentCommitment.hour_end_date = hourEndMoment.add(configuration.commitment.hour.default.duration_months, 'months').format(defaultDateTimeFormat)
+  currentCommitment.hour_goal = configuration.commitment.hour.default.goal
+  currentCommitment.hour_donated = 0
+  currentCommitment.hour_amount = configuration.commitment.hour.default.amount
+  currentCommitment.hour_recurring = true
+
+  mainStatusDiv.classList.add("d-none")
+  createCommitment()
+})
 
 const logOutButton = document.createElement("button")
 logOutButton.id = "logout-button"
@@ -114,13 +152,14 @@ const paymentCardFooterDiv = document.querySelector("#payment-card-footer")
 
 const MINIMUM_WAGE = 8
 
-const simulatedMoment = moment();
-const currentDateElement = document.querySelector("#current-date")
+
 const incrementSimulatedDate = async () => {
 
   try {
 
-    const simulatedDate = simulatedMoment.add(1, "day").format(defaultDateTimeFormat)
+    // const clonedMoment = moment(simulatedMoment)
+
+    simulatedDate = simulatedMoment.add(1, "day").format(defaultDateTimeFormat)
 
     currentDateElement.innerHTML = `${simulatedDate}`
 
@@ -154,10 +193,11 @@ const incrementSimulatedDate = async () => {
 
 setInterval(async () => {
   await incrementSimulatedDate()
-}, 200)
+}, simulatedDateInterval)
 
 
 const clearMainDiv = () => {
+  setNavBar()
   orgDiv.classList.add("d-none")
   userDiv.classList.add("d-none")
   causeDiv.classList.add("d-none")
@@ -494,7 +534,8 @@ const displayCause = (cause) => {
 
     currentCommitment.fund_duration = configuration.commitment.fund.default.duration_months
     currentCommitment.fund_start_date = simulatedMoment.format(defaultDateTimeFormat)
-    currentCommitment.fund_end_date = simulatedMoment.add(configuration.commitment.fund.default.duration_months, 'months').format(defaultDateTimeFormat)
+    const clonedFundMoment = moment(simulatedMoment)
+    currentCommitment.fund_end_date = clonedFundMoment.add(configuration.commitment.fund.default.duration_months, 'months').format(defaultDateTimeFormat)
     currentCommitment.fund_goal = configuration.commitment.fund.default.goal
     currentCommitment.fund_donated = 0
     currentCommitment.fund_amount = configuration.commitment.fund.default.amount
@@ -502,7 +543,8 @@ const displayCause = (cause) => {
 
     currentCommitment.hour_duration = configuration.commitment.hour.default.duration_months
     currentCommitment.hour_start_date = simulatedMoment.format(defaultDateTimeFormat)
-    currentCommitment.hour_end_date = simulatedMoment.add(configuration.commitment.hour.default.duration_months, 'months').format(defaultDateTimeFormat)
+    const clonedHourMoment = moment(simulatedMoment)
+    currentCommitment.hour_end_date = clonedHourMoment.add(configuration.commitment.hour.default.duration_months, 'months').format(defaultDateTimeFormat)
     currentCommitment.hour_goal = configuration.commitment.hour.default.goal
     currentCommitment.hour_donated = 0
     currentCommitment.hour_amount = configuration.commitment.hour.default.amount
@@ -1047,7 +1089,9 @@ let createCommitment = (inputCause) => {
   const tableFundPaymentStartInput = document.createElement("input")
   tableFundPaymentStartInput.name = "fund_start_date"
   tableFundPaymentStartInput.type = "date"
-  tableFundPaymentStartInput.value = currentCommitment.fund_start_date
+  // tableFundPaymentStartInput.value = currentCommitment.fund_start_date
+  tableFundPaymentStartInput.value = simulatedDate
+
 
   tableFundPaymentStartCell.append(tableFundPaymentStartInput)
   tableFundPaymentStartRow.append(tableFundPaymentStartLabelCell)
@@ -1127,7 +1171,8 @@ let createCommitment = (inputCause) => {
   const tableHourPaymentStartInput = document.createElement("input")
   tableHourPaymentStartInput.name = "hour_start_date"
   tableHourPaymentStartInput.type = "date"
-  tableHourPaymentStartInput.value = currentCommitment.hour_start_date
+  // tableHourPaymentStartInput.value = currentCommitment.hour_start_date
+  tableHourPaymentStartInput.value = simulatedDate
 
   tableHourPaymentStartCell.append(tableHourPaymentStartInput)
   tableHourPaymentStartRow.append(tableHourPaymentStartLabelCell)
@@ -1287,7 +1332,7 @@ let handleLoginForm = (evt) => {
 let showUserInformation = (user) => {
   clearMainDiv()
   setCurrentUser(user)
-  setNavBar()
+  // setNavBar()
   displayCommitments(user.commitments)
 }
 
@@ -1354,37 +1399,37 @@ let setNavBar = () => {
     displayCommitments(commitments)
   })
 
-  createCommitmentButton.addEventListener("click", async (evt) => {
+  // createCommitmentButton.addEventListener("click", async (evt) => {
 
-    causes = await fetchCauses();
+  //   causes = await fetchCauses();
 
-    currentCause = {}
+  //   currentCause = {}
 
-    currentCommitment = {}
+  //   currentCommitment = {}
 
-    currentCommitment.user_id = currentUserDiv.id
-    currentCommitment.cause_id = null
-    currentCommitment.status = "open"
+  //   currentCommitment.user_id = currentUserDiv.id
+  //   currentCommitment.cause_id = null
+  //   currentCommitment.status = "open"
 
-    currentCommitment.fund_duration = configuration.commitment.fund.default.duration_months
-    currentCommitment.fund_start_date = simulatedMoment.format(defaultDateTimeFormat)
-    currentCommitment.fund_end_date = simulatedMoment.add(configuration.commitment.fund.default.duration_months, 'months').format(defaultDateTimeFormat)
-    currentCommitment.fund_goal = configuration.commitment.fund.default.goal
-    currentCommitment.fund_donated = 0
-    currentCommitment.fund_amount = configuration.commitment.fund.default.amount
-    currentCommitment.fund_recurring = true
+  //   currentCommitment.fund_duration = configuration.commitment.fund.default.duration_months
+  //   currentCommitment.fund_start_date = simulatedMoment.format(defaultDateTimeFormat)
+  //   currentCommitment.fund_end_date = simulatedMoment.add(configuration.commitment.fund.default.duration_months, 'months').format(defaultDateTimeFormat)
+  //   currentCommitment.fund_goal = configuration.commitment.fund.default.goal
+  //   currentCommitment.fund_donated = 0
+  //   currentCommitment.fund_amount = configuration.commitment.fund.default.amount
+  //   currentCommitment.fund_recurring = true
 
-    currentCommitment.hour_duration = configuration.commitment.hour.default.duration_months
-    currentCommitment.hour_start_date = simulatedMoment.format(defaultDateTimeFormat)
-    currentCommitment.hour_end_date = simulatedMoment.add(configuration.commitment.hour.default.duration_months, 'months').format(defaultDateTimeFormat)
-    currentCommitment.hour_goal = configuration.commitment.hour.default.goal
-    currentCommitment.hour_donated = 0
-    currentCommitment.hour_amount = configuration.commitment.hour.default.amount
-    currentCommitment.hour_recurring = true
+  //   currentCommitment.hour_duration = configuration.commitment.hour.default.duration_months
+  //   currentCommitment.hour_start_date = simulatedMoment.format(defaultDateTimeFormat)
+  //   currentCommitment.hour_end_date = simulatedMoment.add(configuration.commitment.hour.default.duration_months, 'months').format(defaultDateTimeFormat)
+  //   currentCommitment.hour_goal = configuration.commitment.hour.default.goal
+  //   currentCommitment.hour_donated = 0
+  //   currentCommitment.hour_amount = configuration.commitment.hour.default.amount
+  //   currentCommitment.hour_recurring = true
 
-    mainStatusDiv.classList.add("d-none")
-    createCommitment()
-  })
+  //   mainStatusDiv.classList.add("d-none")
+  //   createCommitment()
+  // })
 }
 
 let logOut = () => {
