@@ -1,3 +1,6 @@
+const defaultDateTimeFormat = "YYYY-MM-DD"
+
+
 const configuration = {}
 configuration.commitment = {}
 configuration.commitment.cause = {}
@@ -15,6 +18,18 @@ configuration.commitment.hour.default.duration_months = 12
 configuration.commitment.hour.default.amount = 4
 configuration.commitment.hour.default.goal = configuration.commitment.hour.default.duration_months * configuration.commitment.hour.default.amount
 
+let currentUser = {}
+currentUser.username = "threecee"
+currentUser.name = "Tracy"
+
+let currentCause
+let currentCommitment
+let currentPayment
+
+let orgs = new Set()
+let causes = []
+let commitments = []
+
 const containerDiv = document.querySelector("#container")
 const mainDiv = document.querySelector("#main-div")
 const mainStatusDiv = document.querySelector("#main-status-div")
@@ -24,7 +39,7 @@ const navBarControlsDiv = document.querySelector("#navbar-controls-div")
 navBarControlsDiv.classList.add("d-none")
 
 const showCommitmentsButton = document.createElement("button")
-showCommitmentsButton.id = "create-commitment-button"
+showCommitmentsButton.id = "show-commitments-button"
 showCommitmentsButton.className = "btn btn-primary"
 showCommitmentsButton.innerText = "My Promises"
 
@@ -36,7 +51,7 @@ createCommitmentButton.innerText = "Create New Promise"
 const logOutButton = document.createElement("button")
 logOutButton.id = "logout-button"
 logOutButton.className = "btn btn-danger"
-logOutButton.innerHTML = "Logout"
+logOutButton.innerHTML = `LOGOUT ${currentUser.name}`
 logOutButton.addEventListener("click", (evt) => {
   logOut()
 })
@@ -55,6 +70,7 @@ showUserProfile.id = "show-user-profile-button"
 showUserProfile.className = "btn btn-primary"
 showUserProfile.innerHTML = "My Profile"
 showUserProfile.addEventListener("click", (evt) => {
+  displayUser(currentUser)
 })
 
 navBarControlsDiv.append(displayOrgsButton, showCommitmentsButton, createCommitmentButton, showUserProfile, logOutButton)
@@ -64,6 +80,7 @@ const currentUserErrorDiv = document.querySelector("#current-user-error")
 
 const commitmentDiv = document.querySelector("#commitment")
 commitmentDiv.classList.add("d-none")
+commitmentDiv.setAttribute("commitment_id", "")
 
 const orgDiv = document.querySelector("#org")
 orgDiv.classList.add("d-none")
@@ -71,8 +88,15 @@ const orgCardHeaderDiv = document.querySelector("#org-card-header")
 const orgCardBodyDiv = document.querySelector("#org-card-body")
 const orgCardFooterDiv = document.querySelector("#org-card-footer")
 
-const causeCardDiv = document.querySelector("#cause-card")
-causeCardDiv.classList.add("d-none")
+const userDiv = document.querySelector("#user")
+userDiv.classList.add("d-none")
+const userCardDiv = document.querySelector("#user-card")
+const userCardHeaderDiv = document.querySelector("#user-card-header")
+const userCardBodyDiv = document.querySelector("#user-card-body")
+const userCardFooterDiv = document.querySelector("#user-card-footer")
+
+const causeDiv = document.querySelector("#cause")
+causeDiv.classList.add("d-none")
 const causeCardHeaderDiv = document.querySelector("#cause-card-header")
 const causeCardBodyDiv = document.querySelector("#cause-card-body")
 const causeCardFooterDiv = document.querySelector("#cause-card-footer")
@@ -81,40 +105,253 @@ const commitmentCardHeaderDiv = document.querySelector("#commitment-card-header"
 const commitmentCardBodyDiv = document.querySelector("#commitment-card-body")
 const commitmentCardFooterDiv = document.querySelector("#commitment-card-footer")
 
-const paymentCardDiv = document.querySelector("#payment")
-paymentCardDiv.classList.add("d-none")
+const paymentDiv = document.querySelector("#payment")
+paymentDiv.classList.add("d-none")
 
 const paymentCardHeaderDiv = document.querySelector("#payment-card-header")
 const paymentCardBodyDiv = document.querySelector("#payment-card-body")
 const paymentCardFooterDiv = document.querySelector("#payment-card-footer")
 
-const defaultDateTimeFormat = "YYYY-MM-DD"
 const MINIMUM_WAGE = 8
 
-let currentUser = {}
-currentUser.username = "threecee"
-currentUser.name = "Tracy"
+const simulatedMoment = moment();
+const currentDateElement = document.querySelector("#current-date")
+const incrementSimulatedDate = async () => {
 
-let currentCause
-let currentCommitment
-let currentPayment
+  try {
 
-let orgs = new Set()
-let causes = []
-let commitments = []
+    const simulatedDate = simulatedMoment.add(1, "day").format(defaultDateTimeFormat)
+
+    currentDateElement.innerHTML = `${simulatedDate}`
+
+    const options = {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ simulated_date: simulatedDate })
+    }
+
+    const res = await fetch(`http://localhost:3000/commitments/testtime`, options)
+
+    const results = await res.json()
+
+    if (results.payments.length > 0) {
+
+      console.log("SIMULATED DATE/TIME: ", simulatedMoment.format(defaultDateTimeFormat), results)
+
+      results.payments.forEach(async (payment) => {
+        if (parseInt(payment.commitment_id) == parseInt(commitmentDiv.getAttribute("commitment_id"))) {
+          const commitment = await fetchCommitments(payment.commitment_id)
+          displayCommitment(commitment)
+        }
+      })
+    }
+  }
+  catch (err) {
+    console.error("simulate time error: ", err)
+    throw err
+  }
+}
+
+setInterval(async () => {
+  await incrementSimulatedDate()
+}, 200)
+
 
 const clearMainDiv = () => {
   orgDiv.classList.add("d-none")
-  causeCardDiv.classList.add("d-none")
+  userDiv.classList.add("d-none")
+  causeDiv.classList.add("d-none")
   commitmentDiv.classList.add("d-none")
-  causeCardDiv.classList.add("d-none")
-  commitmentDiv.classList.add("d-none")
-  causeCardDiv.classList.add("d-none")
+  commitmentDiv.setAttribute("commitment_id", "")
+  paymentDiv.classList.add("d-none")
+}
+
+const displayUser = (user) => {
+  clearMainDiv()
+  userDiv.classList.remove("d-none")
+  userCardHeaderDiv.innerHTML = `<strong>${user.name}</strong><br><i>${user.username}</i><br><br><h6>${user.address}</h6>`
+  userCardBodyDiv.innerHTML = `<h6>${user.bio}</h6>`
+  userCardFooterDiv.innerHTML = ""
+  logOutButton.innerHTML = `LOGOUT ${user.name}`
+
+  const userEditButton = document.createElement('button')
+  userEditButton.className = "btn btn-success"
+  userEditButton.innerText = "Edit Profile"
+  userCardFooterDiv.append(userEditButton)
+  userEditButton.addEventListener("click", (evt) => {
+    editUserProfile(currentUser)
+  })
+}
+
+const editUserProfile = (user) => {
+  clearMainDiv()
+  userDiv.classList.remove("d-none")
+  userCardHeaderDiv.innerHTML = `<h4>Update Your Profile</h4><br><strong>${user.name}</strong><br><i>${user.username}</i>`
+  userCardBodyDiv.innerHTML = ""
+  userCardFooterDiv.innerHTML = ""
+
+  const userProfileForm = document.createElement("form")
+
+  let nameLabel = document.createElement("label")
+  nameLabel.htmlFor = "name"
+  nameLabel.innerText = "Name"
+
+  let nameInput = document.createElement("input")
+  nameInput.type = "text"
+  nameInput.className = "form-control"
+  nameInput.id = "name"
+  nameInput.value = user.name
+
+  let usernameLabel = document.createElement("label")
+  usernameLabel.htmlFor = "username"
+  usernameLabel.innerText = "Username"
+
+  let usernameInput = document.createElement("input")
+  usernameInput.type = "text"
+  usernameInput.className = "form-control"
+  usernameInput.id = "username"
+  usernameInput.value = user.username
+
+  const userSubmitButton = document.createElement("button")
+  userSubmitButton.className = "btn btn-success"
+  userSubmitButton.type = "submit"
+  userSubmitButton.innerText = "Update Profile?"
+
+  userProfileForm.append(nameLabel, nameInput, usernameLabel, usernameInput, userSubmitButton)
+  userCardBodyDiv.append(userProfileForm)
+
+  userProfileForm.addEventListener("submit", async (evt) => {
+    evt.preventDefault()
+
+    const formData = new FormData(userProfileForm);
+    const userUpdateData = {}
+
+    userUpdateData.id = currentUser.id
+    userUpdateData.name = evt.target.name.value
+    userUpdateData.username = evt.target.username.value
+
+    const updatedUser = await updateUserProfile(userUpdateData) // makes UPDATE via fetch
+    displayUser(updatedUser)
+  })
+
+}
+
+const updateUserProfile = async (user) => {
+  // fetch UPDATE user
+  try {
+    const options = {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(user)
+    }
+
+    const res = await fetch(`http://localhost:3000/users/${user.id}`, options)
+    user = await res.json()
+    console.log("Updated user: ", user)
+    return user
+  }
+  catch (err) {
+    console.error("User Profile Update error: ", err)
+    throw err
+  }
 }
 
 const displayPayment = (payment) => {
   clearMainDiv()
   console.log(payment)
+}
+
+const displayPayments = (params) => {
+
+  const commitment = params.commitment
+
+  const table = document.createElement("table")
+  table.classList = "table payments table-hover"
+
+  const tableHeader = document.createElement("thead")
+  const tableHeaderRow = document.createElement("tr")
+  const tableBody = document.createElement("tbody")
+
+  const colArray = [
+    "id",
+    "date",
+    "fund-amount",
+    "hour-amount"
+  ]
+
+  colArray.forEach(col => {
+
+    const element = document.createElement("th")
+    element.id = "header-" + col
+    element.scope = "col"
+
+    switch (col) {
+
+      case "id":
+        element.innerHTML = "ID"
+        break
+
+      case "date":
+        element.innerHTML = "Date"
+        break
+
+      case "fund-amount":
+        element.innerHTML = "Paid $"
+        break
+
+      case "hour-amount":
+        element.innerHTML = "Paid Hrs"
+        break
+
+      default:
+    }
+
+    tableHeaderRow.append(element)
+
+  })
+
+  commitment.payments.forEach(payment => {
+
+    const rowElement = document.createElement("tr")
+    rowElement.id = "row-" + payment.id
+    rowElement.scope = "row"
+
+    colArray.forEach(col => {
+
+      const element = document.createElement("td")
+
+      switch (col) {
+
+        case "id":
+          element.innerHTML = `${payment.id}`
+          break
+
+        case "date":
+          element.innerHTML = `${payment.date}`
+          break
+
+        case "fund-amount":
+          element.innerHTML = `${commitment.fund_amount}`
+          break
+
+        case "hour-amount":
+          element.innerHTML = `${commitment.hour_amount}`
+          break
+
+        default:
+      }
+
+      rowElement.append(element)
+    })
+
+    tableBody.append(rowElement)
+  })
+
+  tableHeader.append(tableHeaderRow)
+  table.append(tableHeader)
+  table.append(tableBody)
+  params.parentDiv.append(table)
+
 }
 
 const postPayment = async (newPayment) => {
@@ -152,7 +389,8 @@ const makePayment = async (commitment) => {
     const newPayment = {
       user_id: currentUser.id,
       commitment_id: commitment.id,
-      date: moment().format(defaultDateTimeFormat),
+      // date: moment().format(defaultDateTimeFormat),
+      date: simulatedMoment.format(defaultDateTimeFormat),
       fund_amount: commitment.fund_amount,
       hour_amount: commitment.hour_amount
     }
@@ -178,7 +416,7 @@ const displayProgressBar = (params) => {
   progressDiv.id = params.divId
   progressDiv.classList.add(params.class)
 
-  const progressPercent = 100 * (params.currentAmount / params.targetAmount)
+  const progressPercent = 100 * (params.currentAmount / params.goalAmount)
 
   const progressInfo = document.createElement("p")
   progressInfo.id = params.infoId
@@ -200,7 +438,84 @@ const displayProgressBar = (params) => {
 }
 
 const displayCause = (cause) => {
+
+  currentCause = cause
+
   clearMainDiv()
+  causeDiv.classList.remove("d-none")
+  causeDiv.cause_id = cause.id
+
+  causeCardHeaderDiv.innerHTML = `<h4>Cause</h4><br><strong>${cause.name}</strong><br><i>${cause.description}</i><br><br><h6>Organization</h6><h5>${cause.org.name}</h5>`
+
+  causeCardBodyDiv.innerHTML = ""
+  causeCardFooterDiv.innerHTML = ""
+
+  const causeGoalFund = document.createElement("div")
+  causeGoalFund.classList.add("cause-goal")
+  causeGoalFund.innerHTML = `<h5>Funding</h5>`
+
+  const causeFundProgressDiv = displayProgressBar({
+    parentDiv: causeGoalFund,
+    divId: "cause-fund-progress-div",
+    class: "progress",
+    goalAmount: cause.fund_goal,
+    currentAmount: cause.fund_donated,
+    infoId: "cause-fund-progress-info",
+    infoInnerHTML: `Goal: $${cause.fund_goal} / Donated: $${cause.fund_donated}`,
+    progressBarId: "cause-fund-progress-bar"
+  })
+
+  const causeGoalHour = document.createElement("div")
+  causeGoalHour.classList.add("cause-goal")
+  causeGoalHour.innerHTML = `<h5>Hours</h5>`
+
+  const causeHourProgressDiv = displayProgressBar({
+    parentDiv: causeGoalHour,
+    divId: "cause-hour-progress-div",
+    class: "progress",
+    goalAmount: cause.hour_goal,
+    currentAmount: cause.hour_donated,
+    infoId: "cause-hour-progress-info",
+    infoInnerHTML: `Goal: ${cause.hour_goal} / Donated: ${cause.hour_donated}`,
+    progressBarId: "cause-hour-progress-bar"
+  })
+
+  const supportCauseButton = document.createElement('button')
+  supportCauseButton.className = "btn btn-secondary"
+  supportCauseButton.innerText = "Support This Cause"
+  supportCauseButton.addEventListener("click", async (evt) => {
+
+    causes = await fetchCauses()
+    currentCommitment = {}
+
+    currentCommitment.user_id = currentUser.id
+    currentCommitment.cause_id = cause.id
+    currentCommitment.status = "open"
+
+    currentCommitment.fund_duration = configuration.commitment.fund.default.duration_months
+    currentCommitment.fund_start_date = simulatedMoment.format(defaultDateTimeFormat)
+    currentCommitment.fund_end_date = simulatedMoment.add(configuration.commitment.fund.default.duration_months, 'months').format(defaultDateTimeFormat)
+    currentCommitment.fund_goal = configuration.commitment.fund.default.goal
+    currentCommitment.fund_donated = 0
+    currentCommitment.fund_amount = configuration.commitment.fund.default.amount
+    currentCommitment.fund_recurring = true
+
+    currentCommitment.hour_duration = configuration.commitment.hour.default.duration_months
+    currentCommitment.hour_start_date = simulatedMoment.format(defaultDateTimeFormat)
+    currentCommitment.hour_end_date = simulatedMoment.add(configuration.commitment.hour.default.duration_months, 'months').format(defaultDateTimeFormat)
+    currentCommitment.hour_goal = configuration.commitment.hour.default.goal
+    currentCommitment.hour_donated = 0
+    currentCommitment.hour_amount = configuration.commitment.hour.default.amount
+    currentCommitment.hour_recurring = true
+
+    mainStatusDiv.classList.add("d-none")
+    createCommitment(cause)
+  })
+
+  causeCardFooterDiv.append(supportCauseButton)
+
+  causeCardBodyDiv.append(causeGoalFund, causeGoalHour)
+
 }
 
 const displayCauses = (params) => {
@@ -210,16 +525,17 @@ const displayCauses = (params) => {
   causesTable.classList.add(params.class)
 
   const table = document.createElement("table")
-  table.classList = "table orgs"
+  table.classList = "table causes table-hover"
 
   const tableHeader = document.createElement("thead")
   const tableHeaderRow = document.createElement("tr")
   const tableBody = document.createElement("tbody")
+  const tableFooter = document.createElement("tfoot")
 
   const causesHeaderInfo = document.createElement("th")
   const causesHeaderStatus = document.createElement("th")
 
-  causesHeaderInfo.innerText = "Cause"
+  causesHeaderInfo.innerText = "Causes"
   causesHeaderStatus.innerText = "Status"
 
   causesHeaderInfo.scope = "col"
@@ -255,6 +571,7 @@ const displayCauses = (params) => {
   tableHeader.append(tableHeaderRow)
   table.append(tableHeader)
   table.append(tableBody)
+  table.append(tableFooter)
   params.parentDiv.append(table)
 
 }
@@ -264,7 +581,7 @@ const displayOrg = async (org) => {
   clearMainDiv()
   orgDiv.classList.remove("d-none")
 
-  orgCardHeaderDiv.innerHTML = `<strong>${org.name}</strong><br><i>${org.tagline}</i>`
+  orgCardHeaderDiv.innerHTML = `<h4>Organization</h4><br><strong>${org.name}</strong><br><i>${org.tagline}</i>`
   orgCardBodyDiv.innerHTML = ""
   orgCardFooterDiv.innerHTML = ""
 
@@ -281,12 +598,12 @@ const displayOrgs = async (orgs) => {
   clearMainDiv()
   orgDiv.classList.remove("d-none")
 
-  orgCardHeaderDiv.innerHTML = ""
+  orgCardHeaderDiv.innerHTML = `<h4>Organizations</h4><br>`
   orgCardBodyDiv.innerHTML = ""
   orgCardFooterDiv.innerHTML = ""
 
   const table = document.createElement("table")
-  table.classList = "table orgs"
+  table.classList = "table orgs table-hover"
 
   const tableHeader = document.createElement("thead")
   const tableHeaderRow = document.createElement("tr")
@@ -346,54 +663,20 @@ const displayOrgs = async (orgs) => {
 const displayCommitment = (commitment) => {
 
   clearMainDiv()
-  causeCardDiv.classList.remove("d-none")
-  commitmentDiv.classList.remove("d-none")
 
-  causeCardHeaderDiv.innerHTML = ""
-  causeCardBodyDiv.innerHTML = ""
-  causeCardFooterDiv.innerHTML = ""
+  displayCause(commitment.cause)
+
+  causeDiv.classList.remove("d-none")
+  causeDiv.cause_id = commitment.cause.id
+
+  commitmentDiv.classList.remove("d-none")
+  commitmentDiv.setAttribute("commitment_id", commitment.id)
 
   commitmentCardHeaderDiv.innerHTML = ""
   commitmentCardBodyDiv.innerHTML = ""
   commitmentCardFooterDiv.innerHTML = ""
 
-  causeCardHeaderDiv.innerHTML = `Organization<br><h4>${commitment.cause.org.name}</h4><br>Cause<br><h5>${commitment.cause.name}</h5>${commitment.cause.description}`
-  causeCardBodyDiv.innerHTML = ``
-
-  const causeTargetFund = document.createElement("div")
-  causeTargetFund.classList.add("cause-target")
-  causeTargetFund.innerHTML = `<h5>Funding</h5>`
-
-  const causeFundProgressDiv = displayProgressBar({
-    parentDiv: causeTargetFund,
-    divId: "cause-fund-progress-div",
-    class: "progress",
-    targetAmount: commitment.cause.fund_target,
-    currentAmount: commitment.cause.fund_donated,
-    infoId: "cause-fund-progress-info",
-    infoInnerHTML: `Goal: $${commitment.cause.fund_target} / Donated: $${commitment.cause.fund_donated}`,
-    progressBarId: "cause-fund-progress-bar"
-  })
-
-  const causeTargetHour = document.createElement("div")
-  causeTargetHour.classList.add("cause-target")
-  causeTargetHour.innerHTML = `<h5>Hours</h5>`
-  const causeHourProgressDiv = displayProgressBar({
-    parentDiv: causeTargetHour,
-    divId: "cause-hour-progress-div",
-    class: "progress",
-    targetAmount: commitment.cause.hour_target,
-    currentAmount: commitment.cause.hour_donated,
-    infoId: "cause-hour-progress-info",
-    infoInnerHTML: `Goal: ${commitment.cause.hour_target} / Donated: ${commitment.cause.hour_donated}`,
-    progressBarId: "cause-hour-progress-bar"
-  })
-
-  causeCardBodyDiv.append(causeTargetFund, causeTargetHour)
-
-  // USER PROMISE/COMMITMENT
-
-  commitmentCardHeaderDiv.innerHTML = `<h5>Your Promise to <i>${commitment.cause.name}</i></h5>`
+  commitmentCardHeaderDiv.innerHTML = `<h5>My Promise to <i>${commitment.cause.name}</i></h5>`
 
   const commitmentCardPromiseDiv = document.createElement("div")
   commitmentCardPromiseDiv.classList.add("promise")
@@ -402,7 +685,7 @@ const displayCommitment = (commitment) => {
     parentDiv: commitmentCardPromiseDiv,
     divId: "promise-fund-progress-div",
     class: "progress",
-    targetAmount: commitment.fund_goal,
+    goalAmount: commitment.fund_goal,
     currentAmount: commitment.fund_donated,
     infoId: "promise-fund-progress-info",
     infoInnerHTML: `Fund Progress: Goal: $${commitment.fund_goal} / Donated: $${commitment.fund_donated}`,
@@ -413,7 +696,7 @@ const displayCommitment = (commitment) => {
     parentDiv: commitmentCardPromiseDiv,
     divId: "promise-hour-progress-div",
     class: "progress",
-    targetAmount: commitment.hour_goal,
+    goalAmount: commitment.hour_goal,
     currentAmount: commitment.hour_donated,
     infoId: "promise-hour-progress-info",
     infoInnerHTML: `Hour Progress: Goal: ${commitment.hour_goal} / Donated: ${commitment.hour_donated}`,
@@ -428,28 +711,47 @@ const displayCommitment = (commitment) => {
     displayCommitment(commitment)
   })
 
-  const displayPayments = document.createElement('button')
-  displayPayments.className = "btn btn-success"
-  displayPayments.innerText = "Payments"
-  displayPayments.addEventListener("click", async (evt) => {
+  const displayPaymentsButton = document.createElement('button')
+  displayPaymentsButton.className = "btn btn-success"
+  displayPaymentsButton.innerText = "Payments"
+
+  displayPaymentsButton.addEventListener("click", async (evt) => {
+
+    clearMainDiv()
+
+    paymentCardHeaderDiv.innerHTML = `<h4>My Payments to</h4><br>Organization<h4>${commitment.cause.org.name}</h4>Cause<br><h5>${commitment.cause.name}</h5><i>${commitment.cause.description}</i>`
+    paymentCardBodyDiv.innerHTML = ""
+
+    paymentDiv.classList.remove("d-none")
+
+    displayPayments({
+      parentDiv: paymentCardBodyDiv,
+      commitment: commitment
+    })
+
   })
 
   commitmentCardBodyDiv.append(commitmentCardPromiseDiv)
-  commitmentCardFooterDiv.append(makePaymentButton, displayPayments)
+  commitmentCardFooterDiv.append(makePaymentButton, displayPaymentsButton)
 
 }
 
-const displayCommmitments = (commitments) => {
+const displayCommitments = (commitments) => {
+
+  // ****************************
+  // KLUDGE:  REFACTOR TO BUILD TABLE WITH LOOP
+  // ****************************
 
   clearMainDiv()
   commitmentDiv.classList.remove("d-none")
+  commitmentDiv.setAttribute("commitment_id", "")
 
-  commitmentCardHeaderDiv.innerHTML = ""
+  commitmentCardHeaderDiv.innerHTML = `<h4>My Promises</h4><br>`
   commitmentCardBodyDiv.innerHTML = ""
   commitmentCardFooterDiv.innerHTML = ""
 
   const table = document.createElement("table")
-  table.className = "table"
+  table.className = "table table-hover"
 
   const tableHeader = document.createElement("thead")
   const tableHeaderRow = document.createElement("tr")
@@ -470,7 +772,8 @@ const displayCommmitments = (commitments) => {
   const commitmentHeaderHourDonated = document.createElement("th")
   const commitmentHeaderHourGoal = document.createElement("th")
 
-  commitmentHeaderCause.innerText = "Cause"
+  // commitmentHeaderCause.innerHTML = "Cause"
+  commitmentHeaderCause.innerHTML = `Organization<br><i>Cause</i>`
   commitmentHeaderStatus.innerText = "Status"
   commitmentHeaderStartDate.innerText = "Start"
   commitmentHeaderEndDate.innerText = "End"
@@ -521,7 +824,7 @@ const displayCommmitments = (commitments) => {
     tableRow.scope = "row"
 
     const cellName = document.createElement("td")
-    cellName.innerText = commitment.cause.name
+    cellName.innerHTML = `<strong>${commitment.cause.org.name}</strong><br><i>${commitment.cause.name}</i>`
     cellName.addEventListener("click", (evt) => {
       displayCommitment(commitment)
     })
@@ -586,14 +889,16 @@ const displayCommmitments = (commitments) => {
   commitmentCardBodyDiv.append(table)
 }
 
-let createCommitment = (params) => {
+let createCommitment = (inputCause) => {
 
   clearMainDiv()
 
   commitmentDiv.classList.remove("d-none")
+  commitmentDiv.setAttribute("commitment_id", "")
 
   commitmentCardHeaderDiv.innerHTML = `<h6>Creating a new promise</h6>`
   commitmentCardBodyDiv.innerHTML = ""
+  commitmentCardFooterDiv.innerHTML = ""
 
   const commitmentForm = document.createElement("form")
 
@@ -601,7 +906,7 @@ let createCommitment = (params) => {
   tableResponsiveDiv.className = "table"
 
   const cardTable = document.createElement("table")
-  cardTable.className = "table"
+  cardTable.className = "table table-hover"
 
   const tableBody = document.createElement("tbody")
 
@@ -633,6 +938,14 @@ let createCommitment = (params) => {
       tableOrgSelect.append(option)
     }
   })
+  if (inputCause) {
+    Array.from(tableOrgSelect.options).forEach(function (option) {
+      if (parseInt(option.value) === parseInt(inputCause.org.id)) {
+        console.log("selected org option: ", option)
+        option.selected = true
+      }
+    })
+  }
 
   tableOrgCell.append(tableOrgSelect)
   tableOrgRow.append(tableOrgLabelCell)
@@ -649,12 +962,23 @@ let createCommitment = (params) => {
   tableCauseSelect.id = "cause_id"
   tableCauseSelect.className = "form-control"
 
+  tableCauseSelect.selectedIndex = cause ? cause.id : 0
+
   causes.forEach(cause => {
     let option = document.createElement("option")
     option.innerText = cause.name
     option.value = cause.id
     tableCauseSelect.append(option)
   })
+
+  if (inputCause) {
+    Array.from(tableCauseSelect.options).forEach(function (option) {
+      if (parseInt(option.value) === parseInt(inputCause.id)) {
+        console.log("selected cause option: ", option)
+        option.selected = true
+      }
+    })
+  }
 
   tableCauseCell.append(tableCauseSelect)
   tableCauseRow.append(tableCauseLabelCell)
@@ -867,13 +1191,6 @@ let createCommitment = (params) => {
     displayCommitment(currentCommitment)
   })
 
-  // let backButton = document.createElement('button')
-  // backButton.className = "btn btn-secondary"
-  // backButton.innerText = "Back"
-  // backButton.addEventListener("click", (evt) => {
-  //   // showCommitmentPaymentScheduleForm()
-  // })
-
   commitmentForm.append(cardTable, confirmCreateCommitmentButton)
   commitmentCardBodyDiv.append(commitmentForm)
 }
@@ -895,7 +1212,7 @@ let showLoginForm = () => {
 
   let usernameLabel = document.createElement("label")
   usernameLabel.htmlFor = "username"
-  usernameLabel.innerText = "Username"
+  usernameLabel.innerText = ""
 
   let usernameInput = document.createElement("input")
   usernameInput.type = "text"
@@ -971,7 +1288,7 @@ let showUserInformation = (user) => {
   clearMainDiv()
   setCurrentUser(user)
   setNavBar()
-  displayCommmitments(user.commitments)
+  displayCommitments(user.commitments)
 }
 
 let showUserLoginError = (response) => {
@@ -1000,9 +1317,10 @@ const fetchOrgs = async () => {
   }
 }
 
-const fetchCauses = async () => {
+const fetchCauses = async (cause_id) => {
   try {
-    const res = await fetch("http://localhost:3000/causes")
+    const url = cause_id ? `http://localhost:3000/causes/${cause_id}` : "http://localhost:3000/causes"
+    const res = await fetch(url)
     const causes = await res.json()
     return causes
   }
@@ -1012,9 +1330,10 @@ const fetchCauses = async () => {
   }
 }
 
-const fetchCommitments = async () => {
+const fetchCommitments = async (commitment_id) => {
   try {
-    const res = await fetch(`http://localhost:3000/users/${currentUser.username}/commitments`)
+    const url = commitment_id ? `http://localhost:3000/commitments/${commitment_id}` : `http://localhost:3000/users/${currentUser.username}/commitments`
+    const res = await fetch(url)
     const commitments = await res.json()
     return commitments
   }
@@ -1028,9 +1347,11 @@ let setNavBar = () => {
 
   navBarControlsDiv.classList.remove("d-none")
 
+  logOutButton.innerHTML = `LOGOUT ${currentUser.name}`
+
   showCommitmentsButton.addEventListener("click", async (evt) => {
     commitments = await fetchCommitments()
-    displayCommmitments(commitments)
+    displayCommitments(commitments)
   })
 
   createCommitmentButton.addEventListener("click", async (evt) => {
@@ -1046,16 +1367,16 @@ let setNavBar = () => {
     currentCommitment.status = "open"
 
     currentCommitment.fund_duration = configuration.commitment.fund.default.duration_months
-    currentCommitment.fund_start_date = moment().format(defaultDateTimeFormat)
-    currentCommitment.fund_end_date = moment().add(configuration.commitment.fund.default.duration_months, 'months').format(defaultDateTimeFormat)
+    currentCommitment.fund_start_date = simulatedMoment.format(defaultDateTimeFormat)
+    currentCommitment.fund_end_date = simulatedMoment.add(configuration.commitment.fund.default.duration_months, 'months').format(defaultDateTimeFormat)
     currentCommitment.fund_goal = configuration.commitment.fund.default.goal
     currentCommitment.fund_donated = 0
     currentCommitment.fund_amount = configuration.commitment.fund.default.amount
     currentCommitment.fund_recurring = true
 
     currentCommitment.hour_duration = configuration.commitment.hour.default.duration_months
-    currentCommitment.hour_start_date = moment().format(defaultDateTimeFormat)
-    currentCommitment.hour_end_date = moment().add(configuration.commitment.hour.default.duration_months, 'months').format(defaultDateTimeFormat)
+    currentCommitment.hour_start_date = simulatedMoment.format(defaultDateTimeFormat)
+    currentCommitment.hour_end_date = simulatedMoment.add(configuration.commitment.hour.default.duration_months, 'months').format(defaultDateTimeFormat)
     currentCommitment.hour_goal = configuration.commitment.hour.default.goal
     currentCommitment.hour_donated = 0
     currentCommitment.hour_amount = configuration.commitment.hour.default.amount
@@ -1067,30 +1388,29 @@ let setNavBar = () => {
 }
 
 let logOut = () => {
-  commitmentDiv.classList.add("d-none")
-  paymentCardDiv.classList.add("d-none")
+  clearMainDiv()
   showLoginForm()
 }
 
-// showLoginForm()
+showLoginForm()
 
-fetch("http://localhost:3000/users/login", {
-  method: "POST",
-  headers: {
-    "content-type": "application/json"
-  },
-  body: JSON.stringify({
-    usernameFromFrontEnd: currentUser.username
-  })
-})
-  .then(res => res.json())
-  .then(response => {
-    if (response.id) {
-      currentUser = response
-      navBarControlsDiv.classList.remove("d-none")
-      showUserInformation(currentUser)
-    } else {
-      showUserLoginError(response)
-    }
+// fetch("http://localhost:3000/users/login", {
+//   method: "POST",
+//   headers: {
+//     "content-type": "application/json"
+//   },
+//   body: JSON.stringify({
+//     usernameFromFrontEnd: currentUser.username
+//   })
+// })
+//   .then(res => res.json())
+//   .then(response => {
+//     if (response.id) {
+//       currentUser = response
+//       navBarControlsDiv.classList.remove("d-none")
+//       showUserInformation(currentUser)
+//     } else {
+//       showUserLoginError(response)
+//     }
 
-  })
+//   })

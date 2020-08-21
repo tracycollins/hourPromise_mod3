@@ -8,13 +8,9 @@ class PaymentsController < ApplicationController
   def create
     @payment = Payment.new(payment_params)
     if @payment
-
       @payment.save
-
-      commitment = @payment.commitment.update_stats()
-
+      commitment = @payment.commitment.update_stats
       render json: commitment 
-
     else
       render json: {error: "Payment create error"}
     end
@@ -28,6 +24,7 @@ class PaymentsController < ApplicationController
         render json: {error: "No payment with that id exists"}
     end
   end
+  
   private
 
   def payment_params

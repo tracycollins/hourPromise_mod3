@@ -15,7 +15,6 @@ class CausesController < ApplicationController
     end
   end
 
-
   private
 
   def causes_params
@@ -23,10 +22,12 @@ class CausesController < ApplicationController
       :name,
       :owner,
       :description,
-      :fund_target,
+      :fund_goal,
       :fund_donated,
-      :hour_target,
+      :fund_status,
+      :hour_goal,
       :hour_donated,
+      :hour_status,
       :start_date,
       :end_date,
       :status,

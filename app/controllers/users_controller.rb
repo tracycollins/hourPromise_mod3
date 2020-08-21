@@ -5,9 +5,29 @@ class UsersController < ApplicationController
     render json: @users
   end
 
+  def show
+    @user = User.find(params[:id])
+    if @user
+        render json: @user 
+    else
+        render json: {error: "No user with that id exists"}
+    end
+  end
+  
+
   def login
     @user = User.find_by(username: params[:usernameFromFrontEnd])
     if @user
+        render json: @user 
+    else
+        render json: {error: "No user with that username exists"}
+    end
+  end
+
+  def update
+    @user = User.find(params[:id])
+    if @user
+        @user.update(name: params[:user][:name], username: params[:user][:username])
         render json: @user 
     else
         render json: {error: "No user with that username exists"}
@@ -39,6 +59,18 @@ class UsersController < ApplicationController
     else
         render json: {error: "No user with that username exists"}
     end
+  end
+
+  private
+
+  def user_params
+    params.require(:user).permit(
+      :name,
+      :username,
+      :address,
+      :bio,
+      :interests
+    )
   end
   
 end

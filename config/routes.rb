@@ -4,6 +4,8 @@ Rails.application.routes.draw do
   
   get "users", to: "users#index"
   get "users/:id", to: "users#show"
+  patch "users/:id", to: "users#update"
+  
   get "users/:username/causes", to: "users#causes"
   get "users/:username/commitments", to: "users#commitments"
   get "users/:username/payments", to: "users#payments"
@@ -21,4 +23,7 @@ Rails.application.routes.draw do
   post "/payments/create", to: "payments#create"
   get "payments", to: "payments#index"
   get "payments/:id", to: "payments#show"
+
+  # SIMULATE TIME PASSAGE:
+  post "commitments/testtime", to: "commitments#testtime"
 end

@@ -10,6 +10,18 @@ class Cause < ApplicationRecord
       self.fund_donated += commitment.fund_donated
       self.hour_donated += commitment.hour_donated
     }
+    
+    if self.fund_donated >= self.fund_goal
+      self.fund_status = "funded"
+    end
+
+    if self.hour_donated >= self.hour_goal
+      self.hour_status = "funded"
+    end
+
+    if self.fund_status === "funded" && self.hour_status === "funded"
+      self.status = "funded"
+    end
 
     self.save
 

@@ -11,11 +11,11 @@ Cause.destroy_all
 User.destroy_all
 Org.destroy_all
 
-num_orgs = 7
-num_individuals = 9
-num_causes = 23
-num_commitments = 10
-num_payments = 17
+num_orgs = 5
+num_individuals = 7
+num_causes = 7
+num_commitments = 11
+num_payments = 0
 
 User.create([
   {
@@ -43,15 +43,12 @@ orgs = get_rated_orgs(num_orgs)  # defaults to 10 orgs requested.  include integ
 if orgs
 
   orgs.each do |org|
-
     address = org["mailingAddress"]["city"] + " " + org["mailingAddress"]["stateOrProvince"]
-
     new_org = Org.create({
       name: org["charityName"],
       address: address,
       tagline: org["tagLine"]
     })
-
     @orgs_array << new_org
     
   end  
@@ -77,17 +74,19 @@ puts "Generating #{num_causes} Causes ..."
 
 num_causes.times do |index|
 
-  cause_start_date = Faker::Date.between(from: '2020-01-01', to: '2020-08-19')
-  cause_end_date = Faker::Date.between(from: cause_start_date, to: '2025-12-31')
+  cause_start_date = Faker::Date.between(from: '2020-01-01', to: '2020-09-01')
+  cause_end_date = Faker::Date.between(from: '2025-12-31', to: '2030-12-31')
 
   Cause.create({
     description: Faker::Hacker.say_something_smart,
     name: Faker::Company.bs.capitalize,
     start_date: cause_start_date,
     end_date: cause_end_date,
-    fund_target: rand(1..147_174),
-    hour_target: rand(1..357),
-    status: statuses.sample,
+    fund_goal: rand(1..100_000),
+    hour_goal: rand(1..100_000),
+    fund_status: "open",
+    hour_status: "open",
+    status: "open",
     org: @orgs_array.sample,
   })
 
@@ -100,27 +99,29 @@ num_commitments.times do |index|
   cause = Cause.all.sample
   user = User.all.sample
 
-  fund_recurring = [true, false].sample
+  # fund_recurring = [true, false].sample
+  fund_recurring = true
 
   fund_start_date = Faker::Date.between(from: cause.start_date, to: cause.end_date)
   fund_end_date = Faker::Date.between(from: fund_start_date, to: cause.end_date)
-  fund_amount = rand(123..456)
+  fund_amount = rand(13..47)
 
   if fund_recurring
-   fund_goal = rand(fund_amount..10_000)
+   fund_goal = rand(2_000..10_000)
   else
    fund_end_date = fund_start_date
    fund_goal = fund_amount
   end
   
-  hour_recurring = [true, false].sample
+  # hour_recurring = [true, false].sample
+  hour_recurring = true
 
   hour_start_date = Faker::Date.between(from: cause.start_date, to: cause.end_date)
   hour_end_date = Faker::Date.between(from: hour_start_date, to: cause.end_date)
   hour_amount = rand(1..40)
 
   if hour_recurring
-   hour_goal = rand(hour_amount..500)
+   hour_goal = rand(1_000..5_000)
   else
    hour_end_date = hour_start_date
    hour_goal = hour_amount
@@ -134,7 +135,8 @@ num_commitments.times do |index|
     fund_goal: fund_goal,
     fund_amount: fund_amount,
     fund_donated: 0,
-    fund_recurring: fund_recurring,
+    fund_recurring: true,
+    fund_status: "open",
 
     hour_start_date: hour_start_date,
     hour_end_date: hour_end_date,
@@ -142,6 +144,7 @@ num_commitments.times do |index|
     hour_amount: hour_amount,
     hour_donated: 0,
     hour_recurring: true,
+    hour_status: "open",
 
     status: "open",
     user: User.all.sample,

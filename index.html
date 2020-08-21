@@ -40,7 +40,10 @@
     <nav class="navbar">
       <div id="navbar-div" class="d-inline-block">
         <img src="public/images/clock.gif" alt="clock" width="96" height="96" loading="lazy">
-        <h1>HourPromise</h1>
+        <span>
+          <h1>HourPromise</h1>
+          <h3 id="current-date"></h3>
+        </span>
         <div id="navbar-controls-div"></div>
       </div>
     </nav>
@@ -48,6 +51,15 @@
     <div id="main-div" class="main">
 
       <div id="main-status-div" class="mx-auto" style="width: 40rem;"></div>
+
+      <div id="user" class="user">
+        <div id="user-card" class="card border-0" style="width: 18rem;">
+          <img id="user-card-image" class="card-img-top" src="public/images/defaultUserImage.png">
+          <div id="user-card-header" class="card-header"></div>
+          <div id="user-card-body" class="card-body"></div>
+          <div id="user-card-footer" class="card-footer"></div>
+        </div>
+      </div>
 
       <div id="org" class="org">
         <div id="org-card" class="card border-0">
@@ -57,12 +69,15 @@
         </div>
       </div>
 
-      <div id="commitment" class="commitment">
+      <div id="cause" cause_id="" class="cause">
         <div id="cause-card" class="card border-0">
           <div id="cause-card-header" class="card-header"></div>
           <div id="cause-card-body" class="card-body"></div>
           <div id="cause-card-footer" class="card-footer"></div>
         </div>
+      </div>
+
+      <div id="commitment" commitment_id="" class="commitment">
         <div id="commitment-card" class="card border-0">
           <div id="commitment-card-header" class="card-header"></div>
           <div id="commitment-card-body" class="card-body"></div>
