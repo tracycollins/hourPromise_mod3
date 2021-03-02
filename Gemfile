@@ -5,6 +5,7 @@ ruby '2.6.1'
 gem "activerecord", ">= 6.0.3.5"
 gem "actionpack", ">= 6.0.3.5"
 gem "actionview", ">= 6.0.3.3"
+gem "nokogiri", ">= 1.11.0"
 
 gem 'active_model_serializers'
 
