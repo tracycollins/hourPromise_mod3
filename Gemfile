@@ -3,6 +3,7 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
 ruby '2.6.1'
 gem "activerecord", ">= 6.0.3.5"
+gem "actionpack", ">= 6.0.3.5"
 
 gem 'active_model_serializers'
 
